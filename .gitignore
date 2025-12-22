@@ -6,3 +6,12 @@ dist
 # Ignore the output video from Git but not videos you import into src/.
 out
 whisper.cpp
+
+# Server generated files
+server/uploads
+server/out
+server/public
+
+# Generated subtitle files in public (keep sample-video.json if manually added, but usually we want to ignore generated ones)
+public/*.json
+!public/sample-video.json

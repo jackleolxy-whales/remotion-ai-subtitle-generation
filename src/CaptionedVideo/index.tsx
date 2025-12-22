@@ -11,11 +11,12 @@ import {
   watchStaticFile,
 } from "remotion";
 import { z } from "zod";
-import SubtitlePage from "./SubtitlePage";
+import { Word } from "./Word";
+import { KaraokeSentence } from "./KaraokeSentence";
+import { Caption, createTikTokStyleCaptions } from "@remotion/captions";
 import { getVideoMetadata } from "@remotion/media-utils";
 import { loadFont } from "../load-font";
 import { NoCaptionFile } from "./NoCaptionFile";
-import { Caption, createTikTokStyleCaptions } from "@remotion/captions";
 
 export type SubtitleProp = {
   startInSeconds: number;
@@ -24,6 +25,20 @@ export type SubtitleProp = {
 
 export const captionedVideoSchema = z.object({
   src: z.string(),
+  subtitles: z.array(
+    z.object({
+      startMs: z.number(),
+      endMs: z.number(),
+      text: z.string(),
+      timestampMs: z.number().optional(),
+      confidence: z.number().optional(),
+      words: z.array(z.object({
+        text: z.string(),
+        startMs: z.number(),
+        endMs: z.number(),
+      })).optional(),
+    })
+  ).optional(),
 });
 
 export const calculateCaptionedVideoMetadata: CalculateMetadataFunction<
@@ -54,8 +69,9 @@ const SWITCH_CAPTIONS_EVERY_MS = 1200;
 
 export const CaptionedVideo: React.FC<{
   src: string;
-}> = ({ src }) => {
-  const [subtitles, setSubtitles] = useState<Caption[]>([]);
+  subtitles?: (Caption & { words?: { text: string; startMs: number; endMs: number }[] })[];
+}> = ({ src, subtitles: initialSubtitles }) => {
+  const [subtitles, setSubtitles] = useState<Caption[]>(initialSubtitles ?? []);
   const { delayRender, continueRender } = useDelayRender();
   const [handle] = useState(() => delayRender());
   const { fps } = useVideoConfig();
@@ -67,6 +83,12 @@ export const CaptionedVideo: React.FC<{
     .replace(/.webm$/, ".json");
 
   const fetchSubtitles = useCallback(async () => {
+    if (initialSubtitles) {
+      await loadFont();
+      continueRender(handle);
+      return;
+    }
+
     try {
       await loadFont();
       const res = await fetch(subtitlesFile);
@@ -76,7 +98,7 @@ export const CaptionedVideo: React.FC<{
     } catch (e) {
       cancelRender(e);
     }
-  }, [handle, subtitlesFile]);
+  }, [handle, subtitlesFile, initialSubtitles]);
 
   useEffect(() => {
     fetchSubtitles();
@@ -90,34 +112,151 @@ export const CaptionedVideo: React.FC<{
     };
   }, [fetchSubtitles, src, subtitlesFile]);
 
-  const { pages } = useMemo(() => {
-    return createTikTokStyleCaptions({
-      combineTokensWithinMilliseconds: SWITCH_CAPTIONS_EVERY_MS,
-      captions: subtitles ?? [],
-    });
-  }, [subtitles]);
+  const [localVideoSrc, setLocalVideoSrc] = useState<string | null>(null);
+  const [localSubtitles, setLocalSubtitles] = useState<(Caption & { words?: any[] })[] | null>(null);
+
+  const onVideoFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const url = URL.createObjectURL(e.target.files[0]);
+      setLocalVideoSrc(url);
+    }
+  }, []);
+
+  const onSubtitleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (!content) return;
+
+        // Simple SRT parser
+        const parsed: Caption[] = [];
+        const blocks = content.trim().split(/\n\s*\n/);
+        
+        for (const block of blocks) {
+          const lines = block.split("\n");
+          if (lines.length < 3) continue;
+
+          const timeLine = lines[1];
+          const text = lines.slice(2).join("\n");
+          const [startStr, endStr] = timeLine.split(" --> ");
+
+          if (!startStr || !endStr) continue;
+
+          const parseTime = (timeStr: string) => {
+            const [h, m, s] = timeStr.trim().split(":");
+            const [sec, ms] = s.split(",");
+            return (
+              parseInt(h) * 3600 * 1000 +
+              parseInt(m) * 60 * 1000 +
+              parseInt(sec) * 1000 +
+              parseInt(ms)
+            );
+          };
+
+          const startMs = parseTime(startStr);
+          const endMs = parseTime(endStr);
+
+          parsed.push({
+            startMs,
+            endMs,
+            timestampMs: startMs,
+            text: text.trim(),
+            confidence: 1.0,
+          });
+        }
+        setLocalSubtitles(parsed);
+      };
+      reader.readAsText(file);
+    }
+  }, []);
+
+  const effectiveSrc = localVideoSrc ?? src;
+  // Use local subtitles if available, otherwise fallback to fetched subtitles
+  const effectiveSubtitles = localSubtitles ?? subtitles;
 
   return (
     <AbsoluteFill style={{ backgroundColor: "white" }}>
+      {/* File selector for local development */}
+      {typeof window !== "undefined" && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1000,
+            top: 20,
+            left: 20,
+            backgroundColor: "rgba(0,0,0,0.7)",
+            padding: 10,
+            borderRadius: 8,
+            color: "white",
+            pointerEvents: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          {!localVideoSrc ? (
+            <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 5 }}>
+              <span style={{ fontWeight: "bold" }}>📹 选择本地视频预览</span>
+              <input 
+                type="file" 
+                accept="video/*" 
+                onChange={onVideoFileChange} 
+                style={{ fontSize: 12 }}
+              />
+            </label>
+          ) : (
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+               <span>✅ 已加载本地视频</span>
+               <button
+                 onClick={() => setLocalVideoSrc(null)}
+                 style={{
+                   backgroundColor: "transparent",
+                   border: "none",
+                   color: "white",
+                   cursor: "pointer",
+                   fontSize: 16
+                 }}
+               >
+                 ✖
+               </button>
+             </div>
+          )}
+          
+          <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={{ fontWeight: "bold" }}>📝 导入 SRT/JSON 字幕</span>
+            <input 
+              type="file" 
+              accept=".srt,.json,.txt" 
+              onChange={onSubtitleFileChange} 
+              style={{ fontSize: 12 }}
+            />
+          </label>
+        </div>
+      )}
+
       <AbsoluteFill>
         <OffthreadVideo
-          style={{
-            objectFit: "cover",
-          }}
-          src={src}
+          style={{ objectFit: "cover" }}
+          src={effectiveSrc}
         />
       </AbsoluteFill>
-      {pages.map((page, index) => {
-        const nextPage = pages[index + 1] ?? null;
-        const subtitleStartFrame = (page.startMs / 1000) * fps;
+      
+      {effectiveSubtitles.map((subtitle, index) => {
+        const nextSubtitle = effectiveSubtitles[index + 1] ?? null;
+        const subtitleStartFrame = (subtitle.startMs / 1000) * fps;
         const subtitleEndFrame = Math.min(
-          nextPage ? (nextPage.startMs / 1000) * fps : Infinity,
-          subtitleStartFrame + SWITCH_CAPTIONS_EVERY_MS,
+          nextSubtitle ? (nextSubtitle.startMs / 1000) * fps : Infinity,
+          (subtitle.endMs / 1000) * fps
         );
         const durationInFrames = subtitleEndFrame - subtitleStartFrame;
-        if (durationInFrames <= 0) {
-          return null;
-        }
+        
+        if (durationInFrames <= 0) return null;
+
+        // Check if we have word-level details for Karaoke mode
+        // (This field 'words' is populated by python-transcribe.py in 'sentence' mode)
+        const hasWordLevelTimings = (subtitle as any).words && (subtitle as any).words.length > 0;
 
         return (
           <Sequence
@@ -125,11 +264,20 @@ export const CaptionedVideo: React.FC<{
             from={subtitleStartFrame}
             durationInFrames={durationInFrames}
           >
-            <SubtitlePage key={index} page={page} />;
+             {hasWordLevelTimings ? (
+               <KaraokeSentence 
+                 text={subtitle.text} 
+                 words={(subtitle as any).words} 
+                 sentenceStartMs={subtitle.startMs}
+               />
+             ) : (
+               <Word text={subtitle.text} />
+             )}
           </Sequence>
         );
       })}
-      {getFileExists(subtitlesFile) ? null : <NoCaptionFile />}
+      
+      {effectiveSubtitles.length === 0 && <NoCaptionFile />}
     </AbsoluteFill>
   );
 };

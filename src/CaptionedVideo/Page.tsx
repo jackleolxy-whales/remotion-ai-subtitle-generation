@@ -79,6 +79,8 @@ export const Page: React.FC<{
                   display: "inline",
                   whiteSpace: "pre",
                   color: active ? HIGHLIGHT_COLOR : "white",
+                  opacity: endRelativeToSequence > timeInMs ? (startRelativeToSequence <= timeInMs ? 1 : 0.3) : 1,
+                  filter: startRelativeToSequence > timeInMs ? "blur(2px)" : "none",
                 }}
               >
                 {t.text}
