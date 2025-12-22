@@ -4,15 +4,18 @@ A powerful tool to automatically generate TikTok-style subtitled videos from you
 
 ## ✨ Features
 
-- **🎙️ Automatic Transcription**: Uses OpenAI's Whisper model to accurately transcribe speech to text.
+- **🎙️ Automatic Transcription**: Uses OpenAI's Whisper model (Medium) to accurately transcribe speech to text.
 - **🎨 Dual Subtitle Modes**:
   - **Bouncing Words**: Dynamic word-by-word animation for high-energy videos.
   - **Full Sentences (Karaoke)**: Sentence-level display with precise word-level karaoke highlighting.
-- **⚙️ Customizable Styles**:
-  - Adjust **Font Size**.
-  - Pick your favorite **Font Color**.
-  - Set a custom **Highlight Color** for the karaoke effect.
-- **🚀 Web Interface**: Easy-to-use drag-and-drop interface for uploading, processing, and previewing videos.
+- **⚙️ Customizable Styles & Position**:
+  - **Live Preview**: See your changes in real-time before processing.
+  - **Subtitle Position**: Drag to adjust the vertical position of subtitles.
+  - **Font Styling**: Customize Font Size, Font Color, and Highlight Color.
+- **🚀 Web Interface**: 
+  - Modern side-by-side layout.
+  - Drag-and-drop video upload.
+  - Real-time status updates.
 
 ## 🛠️ Built With
 

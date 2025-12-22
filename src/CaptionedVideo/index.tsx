@@ -73,7 +73,8 @@ export const CaptionedVideo: React.FC<{
   fontSize?: number;
   fontColor?: string;
   highlightColor?: string;
-}> = ({ src, subtitles: initialSubtitles, fontSize, fontColor, highlightColor }) => {
+  subtitleY?: number;
+}> = ({ src, subtitles: initialSubtitles, fontSize, fontColor, highlightColor, subtitleY = 80 }) => {
   const [subtitles, setSubtitles] = useState<Caption[]>(initialSubtitles ?? []);
   const { delayRender, continueRender } = useDelayRender();
   const [handle] = useState(() => delayRender());
@@ -181,64 +182,6 @@ export const CaptionedVideo: React.FC<{
 
   return (
     <AbsoluteFill style={{ backgroundColor: "white" }}>
-      {/* File selector for local development */}
-      {typeof window !== "undefined" && (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 1000,
-            top: 20,
-            left: 20,
-            backgroundColor: "rgba(0,0,0,0.7)",
-            padding: 10,
-            borderRadius: 8,
-            color: "white",
-            pointerEvents: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
-          {!localVideoSrc ? (
-            <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 5 }}>
-              <span style={{ fontWeight: "bold" }}>📹 选择本地视频预览</span>
-              <input 
-                type="file" 
-                accept="video/*" 
-                onChange={onVideoFileChange} 
-                style={{ fontSize: 12 }}
-              />
-            </label>
-          ) : (
-             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-               <span>✅ 已加载本地视频</span>
-               <button
-                 onClick={() => setLocalVideoSrc(null)}
-                 style={{
-                   backgroundColor: "transparent",
-                   border: "none",
-                   color: "white",
-                   cursor: "pointer",
-                   fontSize: 16
-                 }}
-               >
-                 ✖
-               </button>
-             </div>
-          )}
-          
-          <label style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontWeight: "bold" }}>📝 导入 SRT/JSON 字幕</span>
-            <input 
-              type="file" 
-              accept=".srt,.json,.txt" 
-              onChange={onSubtitleFileChange} 
-              style={{ fontSize: 12 }}
-            />
-          </label>
-        </div>
-      )}
-
       <AbsoluteFill>
         <OffthreadVideo
           style={{ objectFit: "cover" }}
@@ -276,12 +219,14 @@ export const CaptionedVideo: React.FC<{
                   fontSize={fontSize}
                   fontColor={fontColor}
                   highlightColor={highlightColor}
+                  subtitleY={subtitleY}
                 />
               ) : (
                 <Word 
                   text={subtitle.text} 
                   fontSize={fontSize}
                   fontColor={fontColor}
+                  subtitleY={subtitleY}
                 />
               )}
             </AbsoluteFill>

@@ -25,7 +25,8 @@ export const Word: React.FC<{
   readonly text: string;
   readonly fontSize?: number;
   readonly fontColor?: string;
-}> = ({ text, fontSize = 100, fontColor = "white" }) => {
+  readonly subtitleY?: number;
+}> = ({ text, fontSize = 100, fontColor = "white", subtitleY = 80 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -38,8 +39,15 @@ export const Word: React.FC<{
     durationInFrames: 5,
   });
 
+  const dynamicContainer: React.CSSProperties = {
+    ...container,
+    top: `${subtitleY}%`,
+    bottom: undefined,
+    transform: 'translateY(-50%)',
+  };
+
   return (
-    <AbsoluteFill style={container}>
+    <AbsoluteFill style={dynamicContainer}>
       <div
         style={{
           fontFamily,

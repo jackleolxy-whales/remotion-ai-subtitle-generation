@@ -27,7 +27,8 @@ export const KaraokeSentence: React.FC<{
   readonly fontSize?: number;
   readonly fontColor?: string;
   readonly highlightColor?: string;
-}> = ({ text, words, sentenceStartMs, fontSize = 60, fontColor = "white", highlightColor = "#FFE600" }) => {
+  readonly subtitleY?: number;
+}> = ({ text, words, sentenceStartMs, fontSize = 60, fontColor = "white", highlightColor = "#FFE600", subtitleY = 80 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -35,8 +36,15 @@ export const KaraokeSentence: React.FC<{
   // We need to add the sequence start time to get the absolute video time.
   const currentAbsoluteTimeMs = sentenceStartMs + (frame / fps) * 1000;
 
+  const dynamicContainer: React.CSSProperties = {
+    ...container,
+    top: `${subtitleY}%`,
+    bottom: undefined,
+    transform: 'translateY(-50%)',
+  };
+
   return (
-    <AbsoluteFill style={container}>
+    <AbsoluteFill style={dynamicContainer}>
       <div
         style={{
           fontFamily,

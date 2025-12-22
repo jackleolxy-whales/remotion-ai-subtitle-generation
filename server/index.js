@@ -38,6 +38,7 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
     const fontSize = req.body.fontSize ? parseInt(req.body.fontSize) : 60;
     const fontColor = req.body.fontColor || '#FFFFFF';
     const highlightColor = req.body.highlightColor || '#FFE600';
+    const subtitleY = req.body.subtitleY ? parseInt(req.body.subtitleY) : 80;
 
     const jobId = req.file.filename.split('.')[0];
     const job = {
@@ -50,6 +51,7 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
         fontSize: fontSize,
         fontColor: fontColor,
         highlightColor: highlightColor,
+        subtitleY: subtitleY,
         createdAt: Date.now()
     };
 
@@ -116,7 +118,8 @@ async function processJob(jobId) {
             subtitles: subtitles,
             fontSize: job.fontSize || 50,
             fontColor: job.fontColor || 'white',
-            highlightColor: job.highlightColor || 'yellow'
+            highlightColor: job.highlightColor || 'yellow',
+            subtitleY: job.subtitleY || 80
         };
         
         const propsFile = path.join(__dirname, 'uploads', `${jobId}.props.json`);

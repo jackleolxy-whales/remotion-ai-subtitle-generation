@@ -7,10 +7,28 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            max-width: 800px;
+            max-width: 1200px; /* Increased max-width for side-by-side layout */
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f7;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .main-column {
+            flex: 1;
+            min-width: 400px;
+        }
+        .preview-column {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .container {
             background: white;
@@ -63,64 +81,113 @@
         .error { background-color: #f8d7da; color: #721c24; }
         .processing { background-color: #cce5ff; color: #004085; }
         
-        #preview-video {
+        #result-video {
             width: 100%;
             margin-top: 20px;
             border-radius: 10px;
             display: none;
         }
+
+        /* Live Preview Styles */
+        .preview-container {
+            position: relative;
+            width: 100%;
+            max-width: 360px; /* Mobile width */
+            aspect-ratio: 9/16;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .preview-video-element {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .preview-subtitle-overlay {
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: center;
+            pointer-events: none;
+            transform: translateY(-50%);
+            white-space: pre-wrap;
+            padding: 0 20px;
+            /* Default styles will be overwritten by JS */
+            font-family: 'The Bold Font', sans-serif; /* Fallback */
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>✨ Auto Subtitle Generator</h1>
-        <p style="text-align: center; color: #86868b;">Upload a video, and we'll add bouncing subtitles automatically!</p>
-        
-        <div class="upload-area" id="drop-zone">
-            <p>Drag & Drop video here or click to select</p>
-            <input type="file" id="file-input" accept="video/*" style="display: none">
-        </div>
-
-        <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px;">
-            <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Subtitle Style:</p>
-            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <input type="radio" name="mode" value="word" checked>
-                    <span>Bouncing Words (Word-by-Word)</span>
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <input type="radio" name="mode" value="sentence">
-                    <span>Full Sentences (Sentence-by-Sentence)</span>
-                </label>
-            </div>
+    <div class="main-column">
+        <div class="container">
+            <h1>✨ Auto Subtitle Generator</h1>
+            <p style="text-align: center; color: #86868b;">Upload a video, and we'll add bouncing subtitles automatically!</p>
             
-            <div style="display: flex; gap: 20px; flex-wrap: wrap; border-top: 1px solid #d2d2d7; padding-top: 15px;">
-                <div style="flex: 1; min-width: 150px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Size (px)</label>
-                    <input type="number" id="font-size" value="60" min="20" max="200" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+            <div class="upload-area" id="drop-zone">
+                <p>Drag & Drop video here or click to select</p>
+                <input type="file" id="file-input" accept="video/*" style="display: none">
+            </div>
+
+            <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px;">
+                <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Subtitle Style:</p>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="radio" name="mode" value="word" checked>
+                        <span>Bouncing Words (Word-by-Word)</span>
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="radio" name="mode" value="sentence">
+                        <span>Full Sentences (Sentence-by-Sentence)</span>
+                    </label>
                 </div>
-                <div style="flex: 1; min-width: 150px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Color</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="color" id="font-color" value="#FFFFFF" style="border: none; width: 40px; height: 40px; cursor: pointer;">
-                        <span id="font-color-val" style="font-size: 14px; color: #86868b;">#FFFFFF</span>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; border-top: 1px solid #d2d2d7; padding-top: 15px;">
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Size (px)</label>
+                        <input type="number" id="font-size" value="60" min="20" max="200" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Color</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="color" id="font-color" value="#FFFFFF" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                            <span id="font-color-val" style="font-size: 14px; color: #86868b;">#FFFFFF</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Highlight Color</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="color" id="highlight-color" value="#FFE600" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                            <span id="highlight-color-val" style="font-size: 14px; color: #86868b;">#FFE600</span>
+                        </div>
                     </div>
                 </div>
-                <div style="flex: 1; min-width: 150px;">
-                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Highlight Color</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="color" id="highlight-color" value="#FFE600" style="border: none; width: 40px; height: 40px; cursor: pointer;">
-                        <span id="highlight-color-val" style="font-size: 14px; color: #86868b;">#FFE600</span>
+
+                <div style="border-top: 1px solid #d2d2d7; padding-top: 15px; margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Subtitle Position (Vertical %)</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="range" id="subtitle-y" min="0" max="100" value="80" style="flex: 1;">
+                        <span id="subtitle-y-val" style="font-size: 14px; color: #86868b; min-width: 40px;">80%</span>
                     </div>
                 </div>
             </div>
+
+            <button id="upload-btn" disabled>Start Generation</button>
+
+            <div id="status"></div>
+            
+            <video id="result-video" controls></video>
         </div>
+    </div>
 
-        <button id="upload-btn" disabled>Start Generation</button>
-
-        <div id="status"></div>
-        
-        <video id="preview-video" controls></video>
+    <div class="preview-column">
+        <h3 style="margin-top: 0; color: #1d1d1f;">Live Preview</h3>
+        <p style="font-size: 14px; color: #86868b; text-align: center;">Position & Style Check</p>
+        <div class="preview-container">
+            <video id="preview-video-element" class="preview-video-element" muted loop playsinline></video>
+            <div id="preview-overlay" class="preview-subtitle-overlay">This is <span id="preview-highlight-span">Subtitle</span></div>
+        </div>
     </div>
 
     <script>
@@ -128,21 +195,71 @@
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
         const statusDiv = document.getElementById('status');
-        const previewVideo = document.getElementById('preview-video');
+        const previewVideo = document.getElementById('result-video');
+        const previewVideoElement = document.getElementById('preview-video-element');
+        const previewOverlay = document.getElementById('preview-overlay');
+        const previewHighlightSpan = document.getElementById('preview-highlight-span');
 
         let selectedFile = null;
 
         const highlightColorInput = document.getElementById('highlight-color');
         const fontSizeInput = document.getElementById('font-size');
+        const fontColorInput = document.getElementById('font-color');
+        const subtitleYInput = document.getElementById('subtitle-y');
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         
+        function updatePreview() {
+            const y = subtitleYInput.value;
+            const size = fontSizeInput.value;
+            const fontColor = fontColorInput.value;
+            const highlightColor = highlightColorInput.value;
+            
+            previewOverlay.style.top = y + '%';
+            // Scale font size for preview (assuming ~1080p source and small preview)
+            // Preview width is max 360px. 1080p is 1080px wide. Ratio ~ 1/3.
+            const scale = 360 / 1080; 
+            previewOverlay.style.fontSize = (size * scale) + 'px';
+            previewOverlay.style.color = fontColor;
+            
+            // Apply highlight color to the span
+            if (previewHighlightSpan) {
+                previewHighlightSpan.style.color = highlightColor;
+            }
+
+            // Scale stroke
+            // Use a thinner stroke for preview clarity (0.05 instead of 0.1) to avoid covering the text color
+            const strokeWidth = (size * 0.05 * scale);
+            const strokeStyle = `${strokeWidth}px black`;
+            previewOverlay.style.webkitTextStroke = strokeStyle;
+            if (previewHighlightSpan) {
+                previewHighlightSpan.style.webkitTextStroke = strokeStyle;
+            }
+            
+            console.log(`Updated preview: Font=${fontColor}, Highlight=${highlightColor}, Size=${size}, Y=${y}`);
+        }
+
         // Update color hex display
-        document.getElementById('font-color').oninput = (e) => {
+        const updateFontColor = (e) => {
             document.getElementById('font-color-val').textContent = e.target.value.toUpperCase();
+            updatePreview();
         };
-        document.getElementById('highlight-color').oninput = (e) => {
+        const updateHighlightColor = (e) => {
             document.getElementById('highlight-color-val').textContent = e.target.value.toUpperCase();
+            updatePreview();
         };
+
+        fontColorInput.oninput = updateFontColor;
+        fontColorInput.onchange = updateFontColor;
+        
+        highlightColorInput.oninput = updateHighlightColor;
+        highlightColorInput.onchange = updateHighlightColor;
+
+        subtitleYInput.oninput = (e) => {
+            document.getElementById('subtitle-y-val').textContent = e.target.value + '%';
+            updatePreview();
+        };
+        
+        fontSizeInput.oninput = updatePreview;
 
         // Update default font size based on mode
         modeInputs.forEach(input => {
@@ -152,11 +269,17 @@
                 } else {
                     fontSizeInput.value = 60;
                 }
+                updatePreview();
             };
         });
+        
+        // Initial preview update
+        updatePreview();
+
         // Set initial state
         if (document.querySelector('input[name="mode"]:checked').value === 'word') {
             fontSizeInput.value = 100;
+            updatePreview();
         }
 
         dropZone.onclick = () => fileInput.click();
@@ -194,6 +317,10 @@
             dropZone.querySelector('p').textContent = `Selected: ${file.name}`;
             uploadBtn.disabled = false;
             previewVideo.style.display = 'none';
+            
+            // Set preview source
+            previewVideoElement.src = URL.createObjectURL(file);
+            previewVideoElement.play().catch(e => console.log('Auto-play prevented:', e));
         }
 
         function showStatus(msg, type) {
@@ -216,6 +343,7 @@
             formData.append('fontSize', document.getElementById('font-size').value);
             formData.append('fontColor', document.getElementById('font-color').value);
             formData.append('highlightColor', document.getElementById('highlight-color').value);
+            formData.append('subtitleY', document.getElementById('subtitle-y').value);
 
             uploadBtn.disabled = true;
             showStatus(`Uploading and processing (${mode} mode)... This may take a few minutes.`, 'processing');
