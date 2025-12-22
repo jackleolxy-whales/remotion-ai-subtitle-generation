@@ -23,7 +23,9 @@ const FONT_SIZE = 100;
 
 export const Word: React.FC<{
   readonly text: string;
-}> = ({ text }) => {
+  readonly fontSize?: number;
+  readonly fontColor?: string;
+}> = ({ text, fontSize = 100, fontColor = "white" }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -41,11 +43,11 @@ export const Word: React.FC<{
       <div
         style={{
           fontFamily,
-          fontSize: FONT_SIZE,
-          color: "white",
+          fontSize: fontSize,
+          color: fontColor,
           textTransform: "uppercase",
           textAlign: "center",
-          WebkitTextStroke: "20px black",
+          WebkitTextStroke: `${fontSize * 0.1}px black`,
           paintOrder: "stroke",
           transform: makeTransform([
             scale(interpolate(enter, [0, 1], [0.5, 1])),

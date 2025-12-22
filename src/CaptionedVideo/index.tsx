@@ -70,7 +70,10 @@ const SWITCH_CAPTIONS_EVERY_MS = 1200;
 export const CaptionedVideo: React.FC<{
   src: string;
   subtitles?: (Caption & { words?: { text: string; startMs: number; endMs: number }[] })[];
-}> = ({ src, subtitles: initialSubtitles }) => {
+  fontSize?: number;
+  fontColor?: string;
+  highlightColor?: string;
+}> = ({ src, subtitles: initialSubtitles, fontSize, fontColor, highlightColor }) => {
   const [subtitles, setSubtitles] = useState<Caption[]>(initialSubtitles ?? []);
   const { delayRender, continueRender } = useDelayRender();
   const [handle] = useState(() => delayRender());
@@ -264,15 +267,24 @@ export const CaptionedVideo: React.FC<{
             from={subtitleStartFrame}
             durationInFrames={durationInFrames}
           >
-             {hasWordLevelTimings ? (
-               <KaraokeSentence 
-                 text={subtitle.text} 
-                 words={(subtitle as any).words} 
-                 sentenceStartMs={subtitle.startMs}
-               />
-             ) : (
-               <Word text={subtitle.text} />
-             )}
+            <AbsoluteFill>
+              {hasWordLevelTimings ? (
+                <KaraokeSentence 
+                  text={subtitle.text} 
+                  words={(subtitle as any).words} 
+                  sentenceStartMs={subtitle.startMs}
+                  fontSize={fontSize}
+                  fontColor={fontColor}
+                  highlightColor={highlightColor}
+                />
+              ) : (
+                <Word 
+                  text={subtitle.text} 
+                  fontSize={fontSize}
+                  fontColor={fontColor}
+                />
+              )}
+            </AbsoluteFill>
           </Sequence>
         );
       })}

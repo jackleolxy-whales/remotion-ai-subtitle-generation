@@ -35,6 +35,9 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
     }
 
     const mode = req.body.mode || 'word'; // 'word' or 'sentence'
+    const fontSize = req.body.fontSize ? parseInt(req.body.fontSize) : 60;
+    const fontColor = req.body.fontColor || '#FFFFFF';
+    const highlightColor = req.body.highlightColor || '#FFE600';
 
     const jobId = req.file.filename.split('.')[0];
     const job = {
@@ -44,6 +47,9 @@ app.post('/api/upload', upload.single('video'), (req, res) => {
         inputPath: req.file.path,
         originalName: req.file.originalname,
         mode: mode,
+        fontSize: fontSize,
+        fontColor: fontColor,
+        highlightColor: highlightColor,
         createdAt: Date.now()
     };
 
@@ -75,7 +81,7 @@ async function processJob(jobId) {
         const pythonScript = path.join(projectRoot, 'python-transcribe.py');
         console.log(`[Job ${jobId}] Starting transcription (Mode: ${job.mode})...`);
         
-        await runCommand('python3', [pythonScript, job.inputPath, 'small', job.mode], projectRoot);
+        await runCommand('python3', [pythonScript, job.inputPath, 'medium', job.mode], projectRoot);
         
         // Python script outputs json to the same directory as input (if we modified it) 
         // OR it outputs to public/ folder based on current implementation.
@@ -107,7 +113,10 @@ async function processJob(jobId) {
         const videoUrl = `http://localhost:${PORT}/uploads/${path.basename(job.inputPath)}`;
         const props = {
             src: videoUrl,
-            subtitles: subtitles
+            subtitles: subtitles,
+            fontSize: job.fontSize || 50,
+            fontColor: job.fontColor || 'white',
+            highlightColor: job.highlightColor || 'yellow'
         };
         
         const propsFile = path.join(__dirname, 'uploads', `${jobId}.props.json`);

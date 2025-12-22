@@ -24,7 +24,10 @@ export const KaraokeSentence: React.FC<{
     endMs: number;
   }[];
   readonly sentenceStartMs: number;
-}> = ({ text, words, sentenceStartMs }) => {
+  readonly fontSize?: number;
+  readonly fontColor?: string;
+  readonly highlightColor?: string;
+}> = ({ text, words, sentenceStartMs, fontSize = 60, fontColor = "white", highlightColor = "#FFE600" }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -37,8 +40,8 @@ export const KaraokeSentence: React.FC<{
       <div
         style={{
           fontFamily,
-          fontSize: FONT_SIZE,
-          color: "white",
+          fontSize: fontSize,
+          color: fontColor,
           textAlign: "center",
           lineHeight: 1.4,
           textShadow: "0px 2px 8px rgba(0,0,0,0.8)",
@@ -53,21 +56,11 @@ export const KaraokeSentence: React.FC<{
             const isActive =
               currentAbsoluteTimeMs >= word.startMs && currentAbsoluteTimeMs <= word.endMs;
             
-            // To ensure we highlight 'something' if we are within the sentence bounds but maybe in a silence gap between words,
-            // we could look at the closest word, but for now strict timing is fine.
-            // Or maybe cumulative: words already spoken are one color, current is highlighted, future is another?
-            // User asked for "highlight yellow", implying karaoke style.
-            
-            // Style:
-            // Past words: White
-            // Current word: Yellow + slight scale
-            // Future words: White (or slightly dimmed?)
-            
             return (
               <span
                 key={i}
                 style={{
-                  color: isActive ? "#FFE600" : "white",
+                  color: isActive ? highlightColor : fontColor,
                   transform: isActive ? "scale(1.1)" : "scale(1)",
                   transition: "transform 0.1s, color 0.1s",
                   display: "inline-block",
@@ -78,7 +71,6 @@ export const KaraokeSentence: React.FC<{
             );
           })
         ) : (
-          // Fallback if no word data is available
           <span>{text}</span>
         )}
       </div>

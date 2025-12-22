@@ -1,83 +1,62 @@
-# Remotion video
+# Auto Subtitle Generator (Powered by Remotion)
 
-<p align="center">
-  <a href="https://github.com/remotion-dev/logo">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.apng">
-      <img alt="Animated Remotion Logo" src="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-light.gif">
-    </picture>
-  </a>
-</p>
+A powerful tool to automatically generate TikTok-style subtitled videos from your raw footage. Upload a video, and let the AI handle the rest!
 
-Welcome to your Remotion project!
+## ✨ Features
 
-## Commands
+- **🎙️ Automatic Transcription**: Uses OpenAI's Whisper model to accurately transcribe speech to text.
+- **🎨 Dual Subtitle Modes**:
+  - **Bouncing Words**: Dynamic word-by-word animation for high-energy videos.
+  - **Full Sentences (Karaoke)**: Sentence-level display with precise word-level karaoke highlighting.
+- **⚙️ Customizable Styles**:
+  - Adjust **Font Size**.
+  - Pick your favorite **Font Color**.
+  - Set a custom **Highlight Color** for the karaoke effect.
+- **🚀 Web Interface**: Easy-to-use drag-and-drop interface for uploading, processing, and previewing videos.
 
-**Install Dependencies**
+## 🛠️ Built With
 
-```console
-npm i
+- **[Remotion](https://www.remotion.dev/)**: The core engine for programmatic video creation in React.
+- **[OpenAI Whisper](https://github.com/openai/whisper)**: State-of-the-art speech recognition.
+- **Node.js & Express**: Backend server for file handling and job processing.
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+1.  **Node.js**: Install from [nodejs.org](https://nodejs.org/).
+2.  **Python 3**: Required for Whisper.
+3.  **FFmpeg**: Required for media processing.
+4.  **OpenAI Whisper**: Install via pip:
+    ```bash
+    pip install openai-whisper
+    ```
+
+### Installation
+
+1.  Clone the repository.
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Running the Application
+
+Start the local server:
+
+```bash
+node server/index.js
 ```
 
-**Start Preview**
+Then open your browser and navigate to:
+[http://localhost:8000](http://localhost:8000)
 
-```console
-npm run dev
-```
+## 🙌 Acknowledgements
 
-**Render video**
+This project is built on top of the amazing open-source work by the **[Remotion](https://github.com/remotion-dev/remotion)** team. Their framework makes it possible to create videos programmatically using React, which is the backbone of this application.
 
-```console
-npx remotion render
-```
+Special thanks to the Remotion community for their templates and inspiration!
 
-**Upgrade Remotion**
+## 📄 License
 
-```console
-npx remotion upgrade
-```
-
-## Captioning
-
-Replace the `sample-video.mp4` with your video file.
-Caption all the videos in you `public` by running the following command:
-
-```console
-node sub.mjs
-```
-
-Only caption a specific video:
-
-```console
-node sub.mjs <path-to-video-file>
-```
-
-Only caption a specific folder:
-
-```console
-node sub.mjs <path-to-folder>
-```
-
-## Configure Whisper.cpp
-
-Captioning will download Whisper.cpp and the 1.5GB big `medium.en` model. To configure which model is being used, you can configure the variables in `whisper-config.mjs`.
-
-### Non-English languages
-
-To support non-English languages, you need to change the `WHISPER_MODEL` variable in `whisper-config.mjs` to a model that does not have a `.en` sufix.
-
-## Docs
-
-Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
-
-## Help
-
-We provide help on our [Discord server](https://remotion.dev/discord).
-
-## Issues
-
-Found an issue with Remotion? [File an issue here](https://github.com/remotion-dev/remotion/issues/new).
-
-## License
-
-Note that for some entities a company license is needed. [Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md).
+This project is based on the Remotion template. Please refer to the [Remotion License](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) for usage terms, especially regarding commercial use.

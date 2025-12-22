@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Subtitle Video Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f7;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1d1d1f;
+        }
+        .upload-area {
+            border: 2px dashed #86868b;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #0071e3;
+            background-color: #f5fafe;
+        }
+        button {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0077ed;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .processing { background-color: #cce5ff; color: #004085; }
+        
+        #preview-video {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Auto Subtitle Generator</h1>
+        <p style="text-align: center; color: #86868b;">Upload a video, and we'll add bouncing subtitles automatically!</p>
+        
+        <div class="upload-area" id="drop-zone">
+            <p>Drag & Drop video here or click to select</p>
+            <input type="file" id="file-input" accept="video/*" style="display: none">
+        </div>
+
+        <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Subtitle Style:</p>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="mode" value="word" checked>
+                    <span>Bouncing Words (Word-by-Word)</span>
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="radio" name="mode" value="sentence">
+                    <span>Full Sentences (Sentence-by-Sentence)</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; border-top: 1px solid #d2d2d7; padding-top: 15px;">
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Size (px)</label>
+                    <input type="number" id="font-size" value="60" min="20" max="200" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Color</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="color" id="font-color" value="#FFFFFF" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                        <span id="font-color-val" style="font-size: 14px; color: #86868b;">#FFFFFF</span>
+                    </div>
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Highlight Color</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="color" id="highlight-color" value="#FFE600" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                        <span id="highlight-color-val" style="font-size: 14px; color: #86868b;">#FFE600</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="upload-btn" disabled>Start Generation</button>
+
+        <div id="status"></div>
+        
+        <video id="preview-video" controls></video>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const statusDiv = document.getElementById('status');
+        const previewVideo = document.getElementById('preview-video');
+
+        let selectedFile = null;
+
+        const highlightColorInput = document.getElementById('highlight-color');
+        const fontSizeInput = document.getElementById('font-size');
+        const modeInputs = document.querySelectorAll('input[name="mode"]');
+        
+        // Update color hex display
+        document.getElementById('font-color').oninput = (e) => {
+            document.getElementById('font-color-val').textContent = e.target.value.toUpperCase();
+        };
+        document.getElementById('highlight-color').oninput = (e) => {
+            document.getElementById('highlight-color-val').textContent = e.target.value.toUpperCase();
+        };
+
+        // Update default font size based on mode
+        modeInputs.forEach(input => {
+            input.onchange = (e) => {
+                if (e.target.value === 'word') {
+                    fontSizeInput.value = 100;
+                } else {
+                    fontSizeInput.value = 60;
+                }
+            };
+        });
+        // Set initial state
+        if (document.querySelector('input[name="mode"]:checked').value === 'word') {
+            fontSizeInput.value = 100;
+        }
+
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        };
+
+        dropZone.ondragover = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#0071e3';
+        };
+
+        dropZone.ondragleave = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#86868b';
+        };
+
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#86868b';
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        };
+
+        function handleFile(file) {
+            if (!file.type.startsWith('video/')) {
+                showStatus('Please upload a video file.', 'error');
+                return;
+            }
+            selectedFile = file;
+            dropZone.querySelector('p').textContent = `Selected: ${file.name}`;
+            uploadBtn.disabled = false;
+            previewVideo.style.display = 'none';
+        }
+
+        function showStatus(msg, type) {
+            statusDiv.textContent = msg;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+        }
+
+        uploadBtn.onclick = async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('video', selectedFile);
+            
+            // Add selected mode
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            formData.append('mode', mode);
+
+            // Add style options
+            formData.append('fontSize', document.getElementById('font-size').value);
+            formData.append('fontColor', document.getElementById('font-color').value);
+            formData.append('highlightColor', document.getElementById('highlight-color').value);
+
+            uploadBtn.disabled = true;
+            showStatus(`Uploading and processing (${mode} mode)... This may take a few minutes.`, 'processing');
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
+
+                showStatus('Processing started! Waiting for result...', 'processing');
+                pollStatus(data.jobId);
+
+            } catch (error) {
+                showStatus(error.message, 'error');
+                uploadBtn.disabled = false;
+            }
+        };
+
+        async function pollStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/status/${jobId}`);
+                    const data = await res.json();
+
+                    if (data.status === 'completed') {
+                        clearInterval(interval);
+                        showStatus('Done! Your video is ready.', 'success');
+                        previewVideo.src = data.url;
+                        previewVideo.style.display = 'block';
+                        uploadBtn.disabled = false;
+                    } else if (data.status === 'failed') {
+                        clearInterval(interval);
+                        showStatus(`Error: ${data.error}`, 'error');
+                        uploadBtn.disabled = false;
+                    } else {
+                        showStatus(`Processing: ${data.step || 'initializing'}...`, 'processing');
+                    }
+                } catch (e) {
+                    clearInterval(interval);
+                    showStatus('Connection lost', 'error');
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
