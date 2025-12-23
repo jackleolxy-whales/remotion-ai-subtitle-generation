@@ -15,3 +15,6 @@ server/public
 # Generated subtitle files in public (keep sample-video.json if manually added, but usually we want to ignore generated ones)
 public/*.json
 !public/sample-video.json
+
+build
+.vercel

@@ -25,8 +25,29 @@ export const Word: React.FC<{
   readonly text: string;
   readonly fontSize?: number;
   readonly fontColor?: string;
+  readonly outlineColor?: string;
+  readonly outlineSize?: number;
   readonly subtitleY?: number;
-}> = ({ text, fontSize = 100, fontColor = "white", subtitleY = 80 }) => {
+  readonly subtitleBgEnabled?: boolean;
+  readonly subtitleBgColor?: string;
+  readonly subtitleBgRadius?: number;
+  readonly subtitleBgPadX?: number;
+  readonly subtitleBgPadY?: number;
+  readonly subtitleBgOpacity?: number;
+}> = ({ 
+  text, 
+  fontSize = 100, 
+  fontColor = "white", 
+  outlineColor = "black",
+  outlineSize,
+  subtitleY = 80,
+  subtitleBgEnabled,
+  subtitleBgColor = "#7B8793",
+  subtitleBgRadius = 25,
+  subtitleBgPadX = 10,
+  subtitleBgPadY = 5,
+  subtitleBgOpacity = 0.4
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -55,7 +76,7 @@ export const Word: React.FC<{
           color: fontColor,
           textTransform: "uppercase",
           textAlign: "center",
-          WebkitTextStroke: `${fontSize * 0.1}px black`,
+          WebkitTextStroke: `${outlineSize ?? fontSize * 0.1}px ${outlineColor}`,
           paintOrder: "stroke",
           transform: makeTransform([
             scale(interpolate(enter, [0, 1], [0.5, 1])),
@@ -71,7 +92,24 @@ export const Word: React.FC<{
             ]),
           }}
         >
-          {text}
+          <span
+            style={{
+              display: "inline-block",
+              backgroundColor: subtitleBgEnabled
+                ? (() => {
+                    const hex = subtitleBgColor.replace("#", "");
+                    const r = parseInt(hex.substring(0, 2), 16);
+                    const g = parseInt(hex.substring(2, 4), 16);
+                    const b = parseInt(hex.substring(4, 6), 16);
+                    return `rgba(${r},${g},${b},${subtitleBgOpacity})`;
+                  })()
+                : "transparent",
+              borderRadius: subtitleBgEnabled ? subtitleBgRadius : 0,
+              padding: subtitleBgEnabled ? `${subtitleBgPadY}px ${subtitleBgPadX}px` : 0,
+            }}
+          >
+            {text}
+          </span>
         </span>
       </div>
     </AbsoluteFill>

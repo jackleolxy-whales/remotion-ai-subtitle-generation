@@ -4,7 +4,8 @@ import {
   CalculateMetadataFunction,
   cancelRender,
   getStaticFiles,
-  OffthreadVideo,
+  Img,
+  Video,
   Sequence,
   useDelayRender,
   useVideoConfig,
@@ -39,6 +40,24 @@ export const captionedVideoSchema = z.object({
       })).optional(),
     })
   ).optional(),
+  fontSize: z.number().optional(),
+  fontColor: z.string().optional(),
+  highlightColor: z.string().optional(),
+  outlineColor: z.string().optional(),
+  outlineSize: z.number().optional(),
+  subtitleY: z.number().optional(),
+  originalVolume: z.number().optional(),
+  subtitleBgEnabled: z.boolean().optional(),
+  subtitleBgColor: z.string().optional(),
+  subtitleBgRadius: z.number().optional(),
+  subtitleBgPadX: z.number().optional(),
+  subtitleBgPadY: z.number().optional(),
+  subtitleBgOpacity: z.number().optional(),
+  watermarkUrl: z.string().nullable().optional(),
+  watermarkOpacity: z.number().optional(),
+  watermarkSize: z.number().optional(),
+  watermarkX: z.number().optional(),
+  watermarkY: z.number().optional(),
 });
 
 export const calculateCaptionedVideoMetadata: CalculateMetadataFunction<
@@ -73,8 +92,43 @@ export const CaptionedVideo: React.FC<{
   fontSize?: number;
   fontColor?: string;
   highlightColor?: string;
+  outlineColor?: string;
+  outlineSize?: number;
   subtitleY?: number;
-}> = ({ src, subtitles: initialSubtitles, fontSize, fontColor, highlightColor, subtitleY = 80 }) => {
+  originalVolume?: number;
+  subtitleBgEnabled?: boolean;
+  subtitleBgColor?: string;
+  subtitleBgRadius?: number;
+  subtitleBgPadX?: number;
+  subtitleBgPadY?: number;
+  subtitleBgOpacity?: number;
+  watermarkUrl?: string | null;
+  watermarkOpacity?: number;
+  watermarkSize?: number;
+  watermarkX?: number;
+  watermarkY?: number;
+}> = ({
+  src,
+  subtitles: initialSubtitles,
+  fontSize,
+  fontColor,
+  highlightColor,
+  outlineColor,
+  outlineSize,
+  subtitleY = 80,
+  originalVolume,
+  subtitleBgEnabled,
+  subtitleBgColor,
+  subtitleBgRadius,
+  subtitleBgPadX,
+  subtitleBgPadY,
+  subtitleBgOpacity,
+  watermarkUrl,
+  watermarkOpacity,
+  watermarkSize,
+  watermarkX,
+  watermarkY,
+}) => {
   const [subtitles, setSubtitles] = useState<Caption[]>(initialSubtitles ?? []);
   const { delayRender, continueRender } = useDelayRender();
   const [handle] = useState(() => delayRender());
@@ -183,11 +237,28 @@ export const CaptionedVideo: React.FC<{
   return (
     <AbsoluteFill style={{ backgroundColor: "white" }}>
       <AbsoluteFill>
-        <OffthreadVideo
+        <Video
           style={{ objectFit: "cover" }}
           src={effectiveSrc}
+          muted={originalVolume === 0}
+          volume={originalVolume ?? 1}
         />
       </AbsoluteFill>
+
+      {watermarkUrl && (
+        <AbsoluteFill>
+          <Img
+            src={watermarkUrl}
+            style={{
+              position: 'absolute',
+              left: `${watermarkX ?? 10}%`,
+              top: `${watermarkY ?? 10}%`,
+              width: `${watermarkSize ?? 20}%`,
+              opacity: watermarkOpacity ?? 0.8,
+            }}
+          />
+        </AbsoluteFill>
+      )}
       
       {effectiveSubtitles.map((subtitle, index) => {
         const nextSubtitle = effectiveSubtitles[index + 1] ?? null;
@@ -219,14 +290,30 @@ export const CaptionedVideo: React.FC<{
                   fontSize={fontSize}
                   fontColor={fontColor}
                   highlightColor={highlightColor}
+                  outlineColor={outlineColor}
+                  outlineSize={outlineSize}
                   subtitleY={subtitleY}
+                  subtitleBgEnabled={subtitleBgEnabled}
+                  subtitleBgColor={subtitleBgColor}
+                  subtitleBgRadius={subtitleBgRadius}
+                  subtitleBgPadX={subtitleBgPadX}
+                  subtitleBgPadY={subtitleBgPadY}
+                  subtitleBgOpacity={subtitleBgOpacity}
                 />
               ) : (
                 <Word 
                   text={subtitle.text} 
                   fontSize={fontSize}
                   fontColor={fontColor}
+                  outlineColor={outlineColor}
+                  outlineSize={outlineSize}
                   subtitleY={subtitleY}
+                  subtitleBgEnabled={subtitleBgEnabled}
+                  subtitleBgColor={subtitleBgColor}
+                  subtitleBgRadius={subtitleBgRadius}
+                  subtitleBgPadX={subtitleBgPadX}
+                  subtitleBgPadY={subtitleBgPadY}
+                  subtitleBgOpacity={subtitleBgOpacity}
                 />
               )}
             </AbsoluteFill>

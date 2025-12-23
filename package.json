@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "A Remotion template for TikTok-style captions",
   "scripts": {
-    "dev": "remotion studio",
+    "dev": "node server/index.js",
+    "studio": "remotion studio",
+    "start": "node server/index.js",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",

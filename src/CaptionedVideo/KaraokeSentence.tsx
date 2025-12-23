@@ -27,8 +27,32 @@ export const KaraokeSentence: React.FC<{
   readonly fontSize?: number;
   readonly fontColor?: string;
   readonly highlightColor?: string;
+  readonly outlineColor?: string;
+  readonly outlineSize?: number;
   readonly subtitleY?: number;
-}> = ({ text, words, sentenceStartMs, fontSize = 60, fontColor = "white", highlightColor = "#FFE600", subtitleY = 80 }) => {
+  readonly subtitleBgEnabled?: boolean;
+  readonly subtitleBgColor?: string;
+  readonly subtitleBgRadius?: number;
+  readonly subtitleBgPadX?: number;
+  readonly subtitleBgPadY?: number;
+  readonly subtitleBgOpacity?: number;
+}> = ({ 
+  text, 
+  words, 
+  sentenceStartMs, 
+  fontSize = 60, 
+  fontColor = "white", 
+  highlightColor = "#FFE600", 
+  outlineColor = "black",
+  outlineSize = 5,
+  subtitleY = 80,
+  subtitleBgEnabled,
+  subtitleBgColor = "#7B8793",
+  subtitleBgRadius = 25,
+  subtitleBgPadX = 10,
+  subtitleBgPadY = 5,
+  subtitleBgOpacity = 0.4
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -53,10 +77,23 @@ export const KaraokeSentence: React.FC<{
           textAlign: "center",
           lineHeight: 1.4,
           textShadow: "0px 2px 8px rgba(0,0,0,0.8)",
-          display: "flex",
+          WebkitTextStroke: `${outlineSize}px ${outlineColor}`,
+          paintOrder: "stroke",
+          display: "inline-flex",
           flexWrap: "wrap",
           justifyContent: "center",
           gap: "15px",
+          backgroundColor: subtitleBgEnabled
+            ? (() => {
+                const hex = subtitleBgColor.replace("#", "");
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                return `rgba(${r},${g},${b},${subtitleBgOpacity})`;
+              })()
+            : "transparent",
+          borderRadius: subtitleBgEnabled ? subtitleBgRadius : 0,
+          padding: subtitleBgEnabled ? `${subtitleBgPadY}px ${subtitleBgPadX}px` : 0,
         }}
       >
         {words.length > 0 ? (

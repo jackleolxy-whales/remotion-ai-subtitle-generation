@@ -18,6 +18,13 @@ export const RemotionRoot: React.FC = () => {
       height={1920}
       defaultProps={{
         src: staticFile("sample-video.mp4"),
+        outlineColor: "black",
+        outlineSize: 5,
+        watermarkUrl: null,
+        watermarkOpacity: 0.8,
+        watermarkSize: 20,
+        watermarkX: 10,
+        watermarkY: 10,
       }}
     />
   );

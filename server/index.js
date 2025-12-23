@@ -29,29 +29,64 @@ const upload = multer({ storage: storage });
 // Job store (in-memory)
 const jobs = new Map();
 
-app.post('/api/upload', upload.single('video'), (req, res) => {
-    if (!req.file) {
+app.post('/api/upload', upload.fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'watermark', maxCount: 1 }
+]), (req, res) => {
+    if (!req.files || !req.files.video) {
         return res.status(400).json({ error: 'No video uploaded' });
     }
+
+    const videoFile = req.files.video[0];
+    const watermarkFile = req.files.watermark ? req.files.watermark[0] : null;
 
     const mode = req.body.mode || 'word'; // 'word' or 'sentence'
     const fontSize = req.body.fontSize ? parseInt(req.body.fontSize) : 60;
     const fontColor = req.body.fontColor || '#FFFFFF';
     const highlightColor = req.body.highlightColor || '#FFE600';
+    const outlineColor = req.body.outlineColor || '#000000';
+    const outlineSize = req.body.outlineSize ? parseInt(req.body.outlineSize) : 5;
     const subtitleY = req.body.subtitleY ? parseInt(req.body.subtitleY) : 80;
+    const originalVolume = req.body.originalVolume !== undefined ? parseFloat(req.body.originalVolume) : 1;
+    const subtitleBgEnabled = req.body.subtitleBgEnabled === 'true';
+    const subtitleBgColor = req.body.subtitleBgColor || '#7B8793';
+    const subtitleBgRadius = req.body.subtitleBgRadius ? parseInt(req.body.subtitleBgRadius) : 25;
+    const subtitleBgPadX = req.body.subtitleBgPadX ? parseInt(req.body.subtitleBgPadX) : 10;
+    const subtitleBgPadY = req.body.subtitleBgPadY ? parseInt(req.body.subtitleBgPadY) : 5;
+    const subtitleBgOpacity = req.body.subtitleBgOpacity ? parseFloat(req.body.subtitleBgOpacity) : 0.4;
 
-    const jobId = req.file.filename.split('.')[0];
+    // Watermark params
+    const watermarkOpacity = req.body.watermarkOpacity ? parseFloat(req.body.watermarkOpacity) : 0.8;
+    const watermarkSize = req.body.watermarkSize ? parseInt(req.body.watermarkSize) : 20;
+    const watermarkX = req.body.watermarkX ? parseInt(req.body.watermarkX) : 10;
+    const watermarkY = req.body.watermarkY ? parseInt(req.body.watermarkY) : 10;
+
+    const jobId = videoFile.filename.split('.')[0];
     const job = {
         id: jobId,
         status: 'queued',
         step: 'uploaded',
-        inputPath: req.file.path,
-        originalName: req.file.originalname,
+        inputPath: videoFile.path,
+        originalName: videoFile.originalname,
         mode: mode,
         fontSize: fontSize,
         fontColor: fontColor,
         highlightColor: highlightColor,
+        outlineColor: outlineColor,
+        outlineSize: outlineSize,
         subtitleY: subtitleY,
+        originalVolume,
+        subtitleBgEnabled,
+        subtitleBgColor,
+        subtitleBgRadius,
+        subtitleBgPadX,
+        subtitleBgPadY,
+        subtitleBgOpacity,
+        watermarkPath: watermarkFile ? watermarkFile.path : null,
+        watermarkOpacity,
+        watermarkSize,
+        watermarkX,
+        watermarkY,
         createdAt: Date.now()
     };
 
@@ -113,13 +148,29 @@ async function processJob(jobId) {
         console.log(`[Job ${jobId}] Starting rendering...`);
         
         const videoUrl = `http://localhost:${PORT}/uploads/${path.basename(job.inputPath)}`;
+        const watermarkUrl = job.watermarkPath ? `http://localhost:${PORT}/uploads/${path.basename(job.watermarkPath)}` : null;
+
         const props = {
             src: videoUrl,
             subtitles: subtitles,
             fontSize: job.fontSize || 50,
             fontColor: job.fontColor || 'white',
             highlightColor: job.highlightColor || 'yellow',
-            subtitleY: job.subtitleY || 80
+            outlineColor: job.outlineColor || 'black',
+            outlineSize: job.outlineSize || 5,
+            subtitleY: job.subtitleY || 80,
+            originalVolume: job.originalVolume,
+            subtitleBgEnabled: job.subtitleBgEnabled,
+            subtitleBgColor: job.subtitleBgColor,
+            subtitleBgRadius: job.subtitleBgRadius,
+            subtitleBgPadX: job.subtitleBgPadX,
+            subtitleBgPadY: job.subtitleBgPadY,
+            subtitleBgOpacity: job.subtitleBgOpacity,
+            watermarkUrl,
+            watermarkOpacity: job.watermarkOpacity,
+            watermarkSize: job.watermarkSize,
+            watermarkX: job.watermarkX,
+            watermarkY: job.watermarkY
         };
         
         const propsFile = path.join(__dirname, 'uploads', `${jobId}.props.json`);

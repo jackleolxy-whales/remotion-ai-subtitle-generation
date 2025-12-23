@@ -48,11 +48,16 @@ A powerful tool to automatically generate TikTok-style subtitled videos from you
 Start the local server:
 
 ```bash
-node server/index.js
+npm run dev
 ```
 
 Then open your browser and navigate to:
 [http://localhost:8000](http://localhost:8000)
+
+If you want to open the Remotion Studio directly to inspect the video template:
+```bash
+npm run studio
+```
 
 ## 🙌 Acknowledgements
 

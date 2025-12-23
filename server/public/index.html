@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Subtitle Video Generator</title>
+    <title>AI Video Wrapper Tool</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -98,6 +98,7 @@
             border-radius: 10px;
             overflow: hidden;
             margin-top: 20px;
+            user-select: none;
         }
         .preview-video-element {
             width: 100%;
@@ -109,7 +110,8 @@
             left: 0;
             right: 0;
             text-align: center;
-            pointer-events: none;
+            pointer-events: auto;
+            cursor: ns-resize;
             transform: translateY(-50%);
             white-space: pre-wrap;
             padding: 0 20px;
@@ -117,13 +119,41 @@
             font-family: 'The Bold Font', sans-serif; /* Fallback */
             text-transform: uppercase;
         }
+        
+        /* Interactive Watermark Styles */
+        #watermark-container {
+            position: absolute;
+            cursor: move;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            display: none;
+        }
+        #watermark-container:hover {
+            border-color: #0071e3;
+        }
+        #preview-watermark {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none;
+        }
+        .resize-handle {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 15px;
+            height: 15px;
+            background: #0071e3;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body>
     <div class="main-column">
         <div class="container">
-            <h1>✨ Auto Subtitle Generator</h1>
-            <p style="text-align: center; color: #86868b;">Upload a video, and we'll add bouncing subtitles automatically!</p>
+            <h1>✨ AI Video Wrapper Tool</h1>
+            <p style="text-align: center; color: #86868b;">Upload a video to add subtitles and style it for social media automatically!</p>
             
             <div class="upload-area" id="drop-zone">
                 <p>Drag & Drop video here or click to select</p>
@@ -146,7 +176,7 @@
                 <div style="display: flex; gap: 20px; flex-wrap: wrap; border-top: 1px solid #d2d2d7; padding-top: 15px;">
                     <div style="flex: 1; min-width: 150px;">
                         <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Size (px)</label>
-                        <input type="number" id="font-size" value="60" min="20" max="200" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                        <input type="number" id="font-size" value="60" min="20" max="200" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
                     </div>
                     <div style="flex: 1; min-width: 150px;">
                         <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Font Color</label>
@@ -164,12 +194,163 @@
                     </div>
                 </div>
 
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; border-top: 1px solid #d2d2d7; padding-top: 15px; margin-top: 15px;">
+                     <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Outline Color</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="color" id="outline-color" value="#000000" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                            <span id="outline-color-val" style="font-size: 14px; color: #86868b;">#000000</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Outline Size (px)</label>
+                        <input type="number" id="outline-size" value="5" min="0" max="20" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 20px; flex-direction: column; border-top: 1px solid #d2d2d7; padding-top: 15px; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <p style="margin: 0; font-weight: bold; color: #1d1d1f;">Subtitle Background</p>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="subtitle-bg-enable" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    
+                    <style>
+                        /* Toggle Switch Styles */
+                        .toggle-switch {
+                            position: relative;
+                            display: inline-block;
+                            width: 40px;
+                            height: 24px;
+                        }
+                        .toggle-switch input {
+                            opacity: 0;
+                            width: 0;
+                            height: 0;
+                        }
+                        .slider {
+                            position: absolute;
+                            cursor: pointer;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background-color: #ccc;
+                            transition: .4s;
+                        }
+                        .slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 18px;
+                            width: 18px;
+                            left: 3px;
+                            bottom: 3px;
+                            background-color: white;
+                            transition: .4s;
+                        }
+                        input:checked + .slider {
+                            background-color: #0071e3;
+                        }
+                        input:checked + .slider:before {
+                            transform: translateX(16px);
+                        }
+                        .slider.round {
+                            border-radius: 24px;
+                        }
+                        .slider.round:before {
+                            border-radius: 50%;
+                        }
+                    </style>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Color</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="subtitle-bg-color" value="#7B8793" style="border: none; width: 40px; height: 40px; cursor: pointer;">
+                                <span id="subtitle-bg-color-val" style="font-size: 14px; color: #86868b;">#7B8793</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Radius (px)</label>
+                            <input type="number" id="subtitle-bg-radius" value="25" min="0" max="100" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Padding X (px)</label>
+                            <input type="number" id="subtitle-bg-pad-x" value="10" min="0" max="200" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Padding Y (px)</label>
+                            <input type="number" id="subtitle-bg-pad-y" value="5" min="0" max="200" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Opacity (%)</label>
+                            <input type="number" id="subtitle-bg-opacity" value="40" min="0" max="100" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                        </div>
+                    </div>
+                </div>
+
                 <div style="border-top: 1px solid #d2d2d7; padding-top: 15px; margin-top: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Subtitle Position (Vertical %)</label>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="range" id="subtitle-y" min="0" max="100" value="80" style="flex: 1;">
                         <span id="subtitle-y-val" style="font-size: 14px; color: #86868b; min-width: 40px;">80%</span>
                     </div>
+                </div>
+
+                <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px; margin-top: 20px;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Watermark Settings:</p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Watermark Image</label>
+                        <div id="wm-drop-zone" class="upload-area" style="padding: 20px;">
+                            <p>Drag & Drop watermark here or click to select</p>
+                            <input type="file" id="watermark-input" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Opacity</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="watermark-opacity" min="0" max="1" step="0.1" value="0.8" style="flex: 1;">
+                                <span id="watermark-opacity-val" style="font-size: 14px; color: #86868b; min-width: 30px;">0.8</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Size (Width %)</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="number" id="watermark-size" value="20" min="5" max="100" style="width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #d2d2d7;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Position X (%)</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="watermark-x" min="0" max="100" value="5" style="flex: 1;">
+                                <span id="watermark-x-val" style="font-size: 14px; color: #86868b; min-width: 30px;">5%</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="display: block; margin-bottom: 5px; font-size: 14px; color: #1d1d1f;">Position Y (%)</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="watermark-y" min="0" max="100" value="3" style="flex: 1;">
+                                <span id="watermark-y-val" style="font-size: 14px; color: #86868b; min-width: 30px;">3%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px; margin-top: 20px;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Audio Settings:</p>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="display: block; font-size: 14px; color: #1d1d1f;">Original Volume</label>
+                        <input type="range" id="original-volume" min="0" max="100" step="1" value="100" style="flex: 1;">
+                        <span id="original-volume-val" style="font-size: 14px; color: #86868b; min-width: 40px;">100%</span>
+                    </div>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #86868b;">Set to 0 to remove original audio in the rendered video</p>
                 </div>
             </div>
 
@@ -186,7 +367,15 @@
         <p style="font-size: 14px; color: #86868b; text-align: center;">Position & Style Check</p>
         <div class="preview-container">
             <video id="preview-video-element" class="preview-video-element" muted loop playsinline></video>
-            <div id="preview-overlay" class="preview-subtitle-overlay">This is <span id="preview-highlight-span">Subtitle</span></div>
+            <div id="watermark-container">
+                <img id="preview-watermark">
+                <div class="resize-handle"></div>
+            </div>
+            <div id="preview-overlay" class="preview-subtitle-overlay">
+                <div id="preview-subtitle-bubble" style="display:inline-block;">
+                    <span id="preview-text">This is <span id="preview-highlight-span">Subtitle</span></span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -199,13 +388,43 @@
         const previewVideoElement = document.getElementById('preview-video-element');
         const previewOverlay = document.getElementById('preview-overlay');
         const previewHighlightSpan = document.getElementById('preview-highlight-span');
+        const previewSubtitleBubble = document.getElementById('preview-subtitle-bubble');
+        const watermarkContainer = document.getElementById('watermark-container');
+        const previewWatermark = document.getElementById('preview-watermark');
+        const resizeHandle = document.querySelector('.resize-handle');
+        const previewContainer = document.querySelector('.preview-container');
 
         let selectedFile = null;
+        let selectedWatermark = null;
+        let isDragging = false;
+        let isResizing = false;
+        let isSubtitleDragging = false;
+        let dragStartX, dragStartY;
+        let initialLeft, initialTop;
+        let initialWidth, initialMouseX;
+        let subtitleDragStartPercentY;
 
         const highlightColorInput = document.getElementById('highlight-color');
         const fontSizeInput = document.getElementById('font-size');
         const fontColorInput = document.getElementById('font-color');
+        const outlineColorInput = document.getElementById('outline-color');
+        const outlineSizeInput = document.getElementById('outline-size');
         const subtitleYInput = document.getElementById('subtitle-y');
+        const subtitleBgEnableInput = document.getElementById('subtitle-bg-enable');
+        const subtitleBgColorInput = document.getElementById('subtitle-bg-color');
+        const subtitleBgRadiusInput = document.getElementById('subtitle-bg-radius');
+        const subtitleBgPadXInput = document.getElementById('subtitle-bg-pad-x');
+        const subtitleBgPadYInput = document.getElementById('subtitle-bg-pad-y');
+        const subtitleBgOpacityInput = document.getElementById('subtitle-bg-opacity');
+        
+        const watermarkInput = document.getElementById('watermark-input');
+        const wmDropZone = document.getElementById('wm-drop-zone');
+        const watermarkOpacityInput = document.getElementById('watermark-opacity');
+        const watermarkSizeInput = document.getElementById('watermark-size');
+        const watermarkXInput = document.getElementById('watermark-x');
+        const watermarkYInput = document.getElementById('watermark-y');
+        const originalVolumeInput = document.getElementById('original-volume');
+
         const modeInputs = document.querySelectorAll('input[name="mode"]');
         
         function updatePreview() {
@@ -213,7 +432,17 @@
             const size = fontSizeInput.value;
             const fontColor = fontColorInput.value;
             const highlightColor = highlightColorInput.value;
+            const outlineColor = outlineColorInput.value;
+            const outlineSize = outlineSizeInput.value;
             
+            // Watermark settings
+            const wmOpacity = watermarkOpacityInput.value;
+            const wmSize = watermarkSizeInput.value;
+            const wmX = watermarkXInput.value;
+            const wmY = watermarkYInput.value;
+            const ovPercent = parseInt(originalVolumeInput.value, 10);
+            const ov = isNaN(ovPercent) ? 1 : Math.max(0, Math.min(100, ovPercent)) / 100;
+
             previewOverlay.style.top = y + '%';
             // Scale font size for preview (assuming ~1080p source and small preview)
             // Preview width is max 360px. 1080p is 1080px wide. Ratio ~ 1/3.
@@ -227,16 +456,207 @@
             }
 
             // Scale stroke
-            // Use a thinner stroke for preview clarity (0.05 instead of 0.1) to avoid covering the text color
-            const strokeWidth = (size * 0.05 * scale);
-            const strokeStyle = `${strokeWidth}px black`;
+            const scaledOutlineSize = (outlineSize * scale);
+            const strokeStyle = `${scaledOutlineSize}px ${outlineColor}`;
             previewOverlay.style.webkitTextStroke = strokeStyle;
             if (previewHighlightSpan) {
                 previewHighlightSpan.style.webkitTextStroke = strokeStyle;
             }
+
+            // Subtitle background bubble
+            if (subtitleBgEnableInput.checked) {
+                const bgHex = subtitleBgColorInput.value;
+                const bgOpacity = (parseInt(subtitleBgOpacityInput.value, 10) || 40) / 100;
+                const padX = parseInt(subtitleBgPadXInput.value, 10) || 10;
+                const padY = parseInt(subtitleBgPadYInput.value, 10) || 5;
+                const radius = parseInt(subtitleBgRadiusInput.value, 10) || 25;
+                const hex = bgHex.replace('#','');
+                const r = parseInt(hex.substring(0,2),16);
+                const g = parseInt(hex.substring(2,4),16);
+                const b = parseInt(hex.substring(4,6),16);
+                previewSubtitleBubble.style.backgroundColor = `rgba(${r},${g},${b},${bgOpacity})`;
+                previewSubtitleBubble.style.borderRadius = `${radius}px`;
+                previewSubtitleBubble.style.padding = `${padY}px ${padX}px`;
+                previewSubtitleBubble.style.display = 'inline-block';
+            } else {
+                previewSubtitleBubble.style.backgroundColor = 'transparent';
+                previewSubtitleBubble.style.padding = '0px';
+                previewSubtitleBubble.style.borderRadius = '0px';
+            }
+            
+            // Update Watermark Preview
+            if (selectedWatermark) {
+                watermarkContainer.style.display = 'block';
+                watermarkContainer.style.opacity = wmOpacity;
+                watermarkContainer.style.width = wmSize + '%';
+                watermarkContainer.style.left = wmX + '%';
+                watermarkContainer.style.top = wmY + '%';
+            } else {
+                watermarkContainer.style.display = 'none';
+            }
             
             console.log(`Updated preview: Font=${fontColor}, Highlight=${highlightColor}, Size=${size}, Y=${y}`);
+            previewVideoElement.volume = isNaN(ov) ? 1 : ov;
+            previewVideoElement.muted = ov === 0;
         }
+
+        // Watermark Drag and Resize Logic
+        previewOverlay.onmousedown = (e) => {
+            isSubtitleDragging = true;
+            dragStartY = e.clientY;
+            subtitleDragStartPercentY = parseFloat(subtitleYInput.value);
+            e.preventDefault();
+        };
+
+        watermarkContainer.onmousedown = (e) => {
+            if (e.target === resizeHandle) return; // Let resize logic handle this
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            
+            // Get current percentage positions
+            const rect = watermarkContainer.getBoundingClientRect();
+            const containerRect = previewContainer.getBoundingClientRect();
+            
+            initialLeft = (rect.left - containerRect.left);
+            initialTop = (rect.top - containerRect.top);
+            
+            e.preventDefault(); // Prevent default drag behavior
+        };
+
+        resizeHandle.onmousedown = (e) => {
+            isResizing = true;
+            initialMouseX = e.clientX;
+            initialWidth = watermarkContainer.offsetWidth;
+            e.stopPropagation(); // Prevent drag start
+            e.preventDefault();
+        };
+
+        window.onmousemove = (e) => {
+            if (isSubtitleDragging) {
+                const containerRect = previewContainer.getBoundingClientRect();
+                const dy = e.clientY - dragStartY;
+                
+                // Calculate change in percentage
+                const deltaPercent = (dy / containerRect.height) * 100;
+                let newPercent = subtitleDragStartPercentY + deltaPercent;
+                
+                // Clamp values (0 to 100)
+                newPercent = Math.max(0, Math.min(100, newPercent));
+                
+                subtitleYInput.value = Math.round(newPercent);
+                document.getElementById('subtitle-y-val').textContent = Math.round(newPercent) + '%';
+                
+                updatePreview();
+            } else if (isDragging) {
+                const containerRect = previewContainer.getBoundingClientRect();
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                
+                let newLeft = initialLeft + dx;
+                let newTop = initialTop + dy;
+                
+                // Convert to percentage
+                let leftPercent = (newLeft / containerRect.width) * 100;
+                let topPercent = (newTop / containerRect.height) * 100;
+                
+                // Clamp values
+                let heightPercent = (watermarkContainer.offsetHeight / containerRect.height) * 100;
+                leftPercent = Math.max(0, Math.min(100 - parseFloat(watermarkSizeInput.value), leftPercent));
+                topPercent = Math.max(0, Math.min(100 - heightPercent, topPercent));
+                
+                watermarkXInput.value = Math.round(leftPercent);
+                watermarkYInput.value = Math.round(topPercent);
+                
+                // Update UI
+                document.getElementById('watermark-x-val').textContent = Math.round(leftPercent) + '%';
+                document.getElementById('watermark-y-val').textContent = Math.round(topPercent) + '%';
+                
+                updatePreview();
+            } else if (isResizing) {
+                const containerRect = previewContainer.getBoundingClientRect();
+                const dx = e.clientX - initialMouseX;
+                
+                let newWidth = initialWidth + dx;
+                let widthPercent = (newWidth / containerRect.width) * 100;
+                
+                // Clamp values (min 5%, max 100%)
+                widthPercent = Math.max(5, Math.min(100, widthPercent));
+                
+                watermarkSizeInput.value = Math.round(widthPercent);
+                
+                updatePreview();
+            }
+        };
+
+        window.onmouseup = () => {
+            isDragging = false;
+            isResizing = false;
+            isSubtitleDragging = false;
+        };
+
+        // Watermark Event Listeners
+        watermarkInput.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                selectedWatermark = e.target.files[0];
+                previewWatermark.src = URL.createObjectURL(selectedWatermark);
+                wmDropZone.querySelector('p').textContent = `Selected: ${selectedWatermark.name}`;
+                updatePreview();
+            } else {
+                selectedWatermark = null;
+                updatePreview();
+            }
+        };
+        
+        wmDropZone.onclick = () => watermarkInput.click();
+        wmDropZone.ondragover = (e) => {
+            e.preventDefault();
+            wmDropZone.style.borderColor = '#0071e3';
+            wmDropZone.style.backgroundColor = '#f5fafe';
+        };
+        wmDropZone.ondragleave = (e) => {
+            e.preventDefault();
+            wmDropZone.style.borderColor = '#86868b';
+            wmDropZone.style.backgroundColor = 'transparent';
+        };
+        wmDropZone.ondrop = (e) => {
+            e.preventDefault();
+            wmDropZone.style.borderColor = '#86868b';
+            wmDropZone.style.backgroundColor = 'transparent';
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                if (!file.type.startsWith('image/')) {
+                    showStatus('Please upload an image file for watermark.', 'error');
+                    return;
+                }
+                selectedWatermark = file;
+                previewWatermark.src = URL.createObjectURL(selectedWatermark);
+                wmDropZone.querySelector('p').textContent = `Selected: ${file.name}`;
+                updatePreview();
+            }
+        };
+
+        watermarkOpacityInput.oninput = (e) => {
+            document.getElementById('watermark-opacity-val').textContent = e.target.value;
+            updatePreview();
+        };
+
+        watermarkSizeInput.oninput = updatePreview;
+
+        watermarkXInput.oninput = (e) => {
+            document.getElementById('watermark-x-val').textContent = e.target.value + '%';
+            updatePreview();
+        };
+
+        watermarkYInput.oninput = (e) => {
+            document.getElementById('watermark-y-val').textContent = e.target.value + '%';
+            updatePreview();
+        };
+
+        originalVolumeInput.oninput = (e) => {
+            document.getElementById('original-volume-val').textContent = `${parseInt(e.target.value, 10)}%`;
+            updatePreview();
+        };
 
         // Update color hex display
         const updateFontColor = (e) => {
@@ -247,12 +667,33 @@
             document.getElementById('highlight-color-val').textContent = e.target.value.toUpperCase();
             updatePreview();
         };
+        const updateOutlineColor = (e) => {
+            document.getElementById('outline-color-val').textContent = e.target.value.toUpperCase();
+            updatePreview();
+        };
 
         fontColorInput.oninput = updateFontColor;
         fontColorInput.onchange = updateFontColor;
         
         highlightColorInput.oninput = updateHighlightColor;
         highlightColorInput.onchange = updateHighlightColor;
+
+        outlineColorInput.oninput = updateOutlineColor;
+        outlineColorInput.onchange = updateOutlineColor;
+        
+        outlineSizeInput.oninput = updatePreview;
+        
+        const updateSubtitleBgColor = (e) => {
+            document.getElementById('subtitle-bg-color-val').textContent = e.target.value.toUpperCase();
+            updatePreview();
+        };
+        subtitleBgEnableInput.onchange = updatePreview;
+        subtitleBgColorInput.oninput = updateSubtitleBgColor;
+        subtitleBgColorInput.onchange = updateSubtitleBgColor;
+        subtitleBgRadiusInput.oninput = updatePreview;
+        subtitleBgPadXInput.oninput = updatePreview;
+        subtitleBgPadYInput.oninput = updatePreview;
+        subtitleBgOpacityInput.oninput = updatePreview;
 
         subtitleYInput.oninput = (e) => {
             document.getElementById('subtitle-y-val').textContent = e.target.value + '%';
@@ -334,6 +775,13 @@
 
             const formData = new FormData();
             formData.append('video', selectedFile);
+            if (selectedWatermark) {
+                formData.append('watermark', selectedWatermark);
+                formData.append('watermarkOpacity', document.getElementById('watermark-opacity').value);
+                formData.append('watermarkSize', document.getElementById('watermark-size').value);
+                formData.append('watermarkX', document.getElementById('watermark-x').value);
+                formData.append('watermarkY', document.getElementById('watermark-y').value);
+            }
             
             // Add selected mode
             const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -343,7 +791,18 @@
             formData.append('fontSize', document.getElementById('font-size').value);
             formData.append('fontColor', document.getElementById('font-color').value);
             formData.append('highlightColor', document.getElementById('highlight-color').value);
+            formData.append('outlineColor', document.getElementById('outline-color').value);
+            formData.append('outlineSize', document.getElementById('outline-size').value);
             formData.append('subtitleY', document.getElementById('subtitle-y').value);
+            const volPercent = parseInt(document.getElementById('original-volume').value, 10);
+            const volDecimal = isNaN(volPercent) ? 1 : Math.max(0, Math.min(100, volPercent)) / 100;
+            formData.append('originalVolume', String(volDecimal));
+            formData.append('subtitleBgEnabled', String(document.getElementById('subtitle-bg-enable').checked));
+            formData.append('subtitleBgColor', document.getElementById('subtitle-bg-color').value);
+            formData.append('subtitleBgRadius', document.getElementById('subtitle-bg-radius').value);
+            formData.append('subtitleBgPadX', document.getElementById('subtitle-bg-pad-x').value);
+            formData.append('subtitleBgPadY', document.getElementById('subtitle-bg-pad-y').value);
+            formData.append('subtitleBgOpacity', String((parseInt(document.getElementById('subtitle-bg-opacity').value, 10) || 40) / 100));
 
             uploadBtn.disabled = true;
             showStatus(`Uploading and processing (${mode} mode)... This may take a few minutes.`, 'processing');
