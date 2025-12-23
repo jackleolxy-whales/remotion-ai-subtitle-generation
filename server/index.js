@@ -6,7 +6,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
