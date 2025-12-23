@@ -10,8 +10,16 @@ A powerful tool to automatically generate TikTok-style subtitled videos from you
   - **Full Sentences (Karaoke)**: Sentence-level display with precise word-level karaoke highlighting.
 - **⚙️ Customizable Styles & Position**:
   - **Live Preview**: See your changes in real-time before processing.
-  - **Subtitle Position**: Drag to adjust the vertical position of subtitles.
-  - **Font Styling**: Customize Font Size, Font Color, and Highlight Color.
+  - **Subtitle Position**: Drag to adjust the vertical position of subtitles directly in the preview.
+  - **Font Styling**: Customize Font Size, Font Color, Outline Size/Color, and Highlight Color.
+  - **Subtitle Background**: Add a customizable background box (Color, Radius, Padding, Opacity) for better readability.
+- **💧 Watermark Support**:
+  - Upload watermark images (drag & drop supported).
+  - Customize size, opacity, and position.
+  - Drag the watermark directly in the preview to position it.
+- **🔊 Audio Control**:
+  - Adjust the original video volume (0-100%).
+  - Set to 0% to remove the original audio in the generated video.
 - **🚀 Web Interface**: 
   - Modern side-by-side layout.
   - Drag-and-drop video upload.
@@ -22,6 +30,7 @@ A powerful tool to automatically generate TikTok-style subtitled videos from you
 - **[Remotion](https://www.remotion.dev/)**: The core engine for programmatic video creation in React.
 - **[OpenAI Whisper](https://github.com/openai/whisper)**: State-of-the-art speech recognition.
 - **Node.js & Express**: Backend server for file handling and job processing.
+- **Docker**: Containerization for easy deployment.
 
 ## 🚀 Getting Started
 
@@ -58,6 +67,24 @@ If you want to open the Remotion Studio directly to inspect the video template:
 ```bash
 npm run studio
 ```
+
+## ☁️ Deployment
+
+### Dual Deployment (Vercel + Render)
+
+This project supports a separated frontend/backend deployment model:
+
+1.  **Backend (Render)**:
+    - Deploy the repository to Render as a Web Service.
+    - Select `Docker` as the Runtime.
+    - Render will automatically build the image using the provided `Dockerfile`.
+    - The backend will serve the API and handle video processing.
+
+2.  **Frontend (Vercel)**:
+    - Deploy the same repository to Vercel.
+    - Configure the Build Command to copy the static assets from `server/public`.
+    - Add the backend URL as a query parameter or configure it in the frontend code to point to your Render service.
+    - Example: `https://your-vercel-app.vercel.app/?api=https://your-render-backend.onrender.com`
 
 ## 🙌 Acknowledgements
 
