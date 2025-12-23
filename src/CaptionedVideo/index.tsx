@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AbsoluteFill,
   CalculateMetadataFunction,
   cancelRender,
-  getStaticFiles,
   Img,
   Video,
   Sequence,
@@ -14,7 +13,7 @@ import {
 import { z } from "zod";
 import { Word } from "./Word";
 import { KaraokeSentence } from "./KaraokeSentence";
-import { Caption, createTikTokStyleCaptions } from "@remotion/captions";
+import { Caption } from "@remotion/captions";
 import { getVideoMetadata } from "@remotion/media-utils";
 import { loadFont } from "../load-font";
 import { NoCaptionFile } from "./NoCaptionFile";
@@ -26,20 +25,7 @@ export type SubtitleProp = {
 
 export const captionedVideoSchema = z.object({
   src: z.string(),
-  subtitles: z.array(
-    z.object({
-      startMs: z.number(),
-      endMs: z.number(),
-      text: z.string(),
-      timestampMs: z.number().optional(),
-      confidence: z.number().optional(),
-      words: z.array(z.object({
-        text: z.string(),
-        startMs: z.number(),
-        endMs: z.number(),
-      })).optional(),
-    })
-  ).optional(),
+  subtitles: z.array(z.any()).optional(),
   fontSize: z.number().optional(),
   fontColor: z.string().optional(),
   highlightColor: z.string().optional(),
@@ -72,19 +58,7 @@ export const calculateCaptionedVideoMetadata: CalculateMetadataFunction<
   };
 };
 
-const getFileExists = (file: string) => {
-  const files = getStaticFiles();
-  const fileExists = files.find((f) => {
-    return f.src === file;
-  });
-  return Boolean(fileExists);
-};
-
-// How many captions should be displayed at a time?
-// Try out:
-// - 1500 to display a lot of words at a time
-// - 200 to only display 1 word at a time
-const SWITCH_CAPTIONS_EVERY_MS = 1200;
+type CaptionWithWords = Caption & { words?: { text: string; startMs: number; endMs: number }[] };
 
 export const CaptionedVideo: React.FC<{
   src: string;
@@ -156,7 +130,7 @@ export const CaptionedVideo: React.FC<{
     } catch (e) {
       cancelRender(e);
     }
-  }, [handle, subtitlesFile, initialSubtitles]);
+  }, [handle, subtitlesFile, initialSubtitles, continueRender]);
 
   useEffect(() => {
     fetchSubtitles();
@@ -170,69 +144,8 @@ export const CaptionedVideo: React.FC<{
     };
   }, [fetchSubtitles, src, subtitlesFile]);
 
-  const [localVideoSrc, setLocalVideoSrc] = useState<string | null>(null);
-  const [localSubtitles, setLocalSubtitles] = useState<(Caption & { words?: any[] })[] | null>(null);
-
-  const onVideoFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setLocalVideoSrc(url);
-    }
-  }, []);
-
-  const onSubtitleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        if (!content) return;
-
-        // Simple SRT parser
-        const parsed: Caption[] = [];
-        const blocks = content.trim().split(/\n\s*\n/);
-        
-        for (const block of blocks) {
-          const lines = block.split("\n");
-          if (lines.length < 3) continue;
-
-          const timeLine = lines[1];
-          const text = lines.slice(2).join("\n");
-          const [startStr, endStr] = timeLine.split(" --> ");
-
-          if (!startStr || !endStr) continue;
-
-          const parseTime = (timeStr: string) => {
-            const [h, m, s] = timeStr.trim().split(":");
-            const [sec, ms] = s.split(",");
-            return (
-              parseInt(h) * 3600 * 1000 +
-              parseInt(m) * 60 * 1000 +
-              parseInt(sec) * 1000 +
-              parseInt(ms)
-            );
-          };
-
-          const startMs = parseTime(startStr);
-          const endMs = parseTime(endStr);
-
-          parsed.push({
-            startMs,
-            endMs,
-            timestampMs: startMs,
-            text: text.trim(),
-            confidence: 1.0,
-          });
-        }
-        setLocalSubtitles(parsed);
-      };
-      reader.readAsText(file);
-    }
-  }, []);
-
-  const effectiveSrc = localVideoSrc ?? src;
-  // Use local subtitles if available, otherwise fallback to fetched subtitles
-  const effectiveSubtitles = localSubtitles ?? subtitles;
+  const effectiveSrc = src;
+  const effectiveSubtitles = subtitles as CaptionWithWords[];
 
   return (
     <AbsoluteFill style={{ backgroundColor: "white" }}>
@@ -241,7 +154,7 @@ export const CaptionedVideo: React.FC<{
           style={{ objectFit: "cover" }}
           src={effectiveSrc}
           muted={originalVolume === 0}
-          volume={originalVolume ?? 1}
+          volume={() => originalVolume ?? 1}
         />
       </AbsoluteFill>
 
@@ -271,9 +184,7 @@ export const CaptionedVideo: React.FC<{
         
         if (durationInFrames <= 0) return null;
 
-        // Check if we have word-level details for Karaoke mode
-        // (This field 'words' is populated by python-transcribe.py in 'sentence' mode)
-        const hasWordLevelTimings = (subtitle as any).words && (subtitle as any).words.length > 0;
+        const hasWordLevelTimings = subtitle.words && subtitle.words.length > 0;
 
         return (
           <Sequence
@@ -285,7 +196,7 @@ export const CaptionedVideo: React.FC<{
               {hasWordLevelTimings ? (
                 <KaraokeSentence 
                   text={subtitle.text} 
-                  words={(subtitle as any).words} 
+                  words={subtitle.words!} 
                   sentenceStartMs={subtitle.startMs}
                   fontSize={fontSize}
                   fontColor={fontColor}

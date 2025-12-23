@@ -19,7 +19,6 @@ const container: React.CSSProperties = {
   height: 150,
 };
 
-const FONT_SIZE = 100;
 
 export const Word: React.FC<{
   readonly text: string;

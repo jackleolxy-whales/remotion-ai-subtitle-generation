@@ -384,6 +384,9 @@
         const fileInput = document.getElementById('file-input');
         const uploadBtn = document.getElementById('upload-btn');
         const statusDiv = document.getElementById('status');
+        const urlParams = new URLSearchParams(window.location.search);
+        const API_BASE = urlParams.get('api') || '';
+        const apiUrl = (path) => API_BASE ? `${API_BASE}${path}` : path;
         const previewVideo = document.getElementById('result-video');
         const previewVideoElement = document.getElementById('preview-video-element');
         const previewOverlay = document.getElementById('preview-overlay');
@@ -808,7 +811,7 @@
             showStatus(`Uploading and processing (${mode} mode)... This may take a few minutes.`, 'processing');
 
             try {
-                const response = await fetch('/api/upload', {
+                const response = await fetch(apiUrl('/api/upload'), {
                     method: 'POST',
                     body: formData
                 });
@@ -831,7 +834,7 @@
         async function pollStatus(jobId) {
             const interval = setInterval(async () => {
                 try {
-                    const res = await fetch(`/api/status/${jobId}`);
+                    const res = await fetch(apiUrl(`/api/status/${jobId}`));
                     const data = await res.json();
 
                     if (data.status === 'completed') {

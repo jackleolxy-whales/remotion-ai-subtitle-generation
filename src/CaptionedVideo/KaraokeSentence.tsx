@@ -14,7 +14,6 @@ const container: React.CSSProperties = {
   paddingRight: 100,
 };
 
-const FONT_SIZE = 60; // Smaller font for sentences
 
 export const KaraokeSentence: React.FC<{
   readonly text: string;
