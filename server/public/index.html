@@ -119,6 +119,9 @@
             font-family: 'The Bold Font', sans-serif; /* Fallback */
             text-transform: uppercase;
         }
+        #preview-subtitle-bubble {
+            text-align: center;
+        }
         
         /* Interactive Watermark Styles */
         #watermark-container {
@@ -156,9 +159,11 @@
             <p style="text-align: center; color: #86868b;">Upload a video to add subtitles and style it for social media automatically!</p>
             
             <div class="upload-area" id="drop-zone">
-                <p>Drag & Drop video here or click to select</p>
-                <input type="file" id="file-input" accept="video/*" style="display: none">
+                <p>Drag & Drop videos here or click to select</p>
+                <input type="file" id="file-input" accept="video/*" multiple style="display: none">
             </div>
+
+            <div id="video-list" style="margin-bottom: 20px; max-height: 150px; overflow-y: auto; display: none;"></div>
 
             <div style="margin-bottom: 20px; background: #f0f0f5; padding: 15px; border-radius: 10px;">
                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #1d1d1f;">Subtitle Style:</p>
@@ -354,11 +359,11 @@
                 </div>
             </div>
 
+            <div id="status" style="display: none; margin-bottom: 20px;"></div>
+
             <button id="upload-btn" disabled>Start Generation</button>
 
-            <div id="status"></div>
-            
-            <video id="result-video" controls></video>
+            <div id="results-container" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -382,12 +387,13 @@
     <script>
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
+        const videoList = document.getElementById('video-list');
         const uploadBtn = document.getElementById('upload-btn');
         const statusDiv = document.getElementById('status');
         const urlParams = new URLSearchParams(window.location.search);
         const API_BASE = urlParams.get('api') || '';
         const apiUrl = (path) => API_BASE ? `${API_BASE}${path}` : path;
-        const previewVideo = document.getElementById('result-video');
+        // const previewVideo = document.getElementById('result-video'); // Removed
         const previewVideoElement = document.getElementById('preview-video-element');
         const previewOverlay = document.getElementById('preview-overlay');
         const previewHighlightSpan = document.getElementById('preview-highlight-span');
@@ -397,7 +403,7 @@
         const resizeHandle = document.querySelector('.resize-handle');
         const previewContainer = document.querySelector('.preview-container');
 
-        let selectedFile = null;
+        let selectedFiles = [];
         let selectedWatermark = null;
         let isDragging = false;
         let isResizing = false;
@@ -481,10 +487,12 @@
                 previewSubtitleBubble.style.borderRadius = `${radius}px`;
                 previewSubtitleBubble.style.padding = `${padY}px ${padX}px`;
                 previewSubtitleBubble.style.display = 'inline-block';
+                previewSubtitleBubble.style.textAlign = 'center'; // Force center alignment
             } else {
                 previewSubtitleBubble.style.backgroundColor = 'transparent';
                 previewSubtitleBubble.style.padding = '0px';
                 previewSubtitleBubble.style.borderRadius = '0px';
+                previewSubtitleBubble.style.textAlign = 'center'; // Ensure alignment persists
             }
             
             // Update Watermark Preview
@@ -730,7 +738,7 @@
 
         fileInput.onchange = (e) => {
             if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
+                handleFiles(e.target.files);
             }
         };
 
@@ -748,22 +756,78 @@
             e.preventDefault();
             dropZone.style.borderColor = '#86868b';
             if (e.dataTransfer.files.length > 0) {
-                handleFile(e.dataTransfer.files[0]);
+                handleFiles(e.dataTransfer.files);
             }
         };
 
-        function handleFile(file) {
-            if (!file.type.startsWith('video/')) {
-                showStatus('Please upload a video file.', 'error');
+        function handleFiles(files) {
+            const validFiles = Array.from(files).filter(f => f.type.startsWith('video/'));
+            
+            if (validFiles.length === 0) {
+                showStatus('Please upload video files.', 'error');
                 return;
             }
-            selectedFile = file;
-            dropZone.querySelector('p').textContent = `Selected: ${file.name}`;
-            uploadBtn.disabled = false;
-            previewVideo.style.display = 'none';
             
-            // Set preview source
-            previewVideoElement.src = URL.createObjectURL(file);
+            selectedFiles = validFiles;
+            const text = validFiles.length === 1 
+                ? `Selected: ${validFiles[0].name}` 
+                : `Selected: ${validFiles.length} videos`;
+            
+            dropZone.querySelector('p').textContent = text;
+            uploadBtn.disabled = false;
+            document.getElementById('results-container').innerHTML = '';
+            
+            // Render video list
+            videoList.innerHTML = '';
+            videoList.style.display = 'block';
+            
+            validFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.style.padding = '8px 12px';
+                item.style.marginBottom = '5px';
+                item.style.background = index === 0 ? '#e8f0fe' : '#fff';
+                item.style.borderRadius = '6px';
+                item.style.cursor = 'pointer';
+                item.style.border = index === 0 ? '1px solid #0071e3' : '1px solid #d2d2d7';
+                item.style.fontSize = '14px';
+                item.style.display = 'flex';
+                item.style.justifyContent = 'space-between';
+                item.style.alignItems = 'center';
+                
+                item.innerHTML = `
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${file.name}</span>
+                    ${index === 0 ? '<span style="font-size: 12px; color: #0071e3;">Previewing</span>' : ''}
+                `;
+                
+                item.onclick = () => {
+                    // Update preview
+                    previewVideoElement.src = URL.createObjectURL(file);
+                    previewVideoElement.play().catch(e => console.log('Auto-play prevented:', e));
+                    
+                    // Update UI selection
+                    Array.from(videoList.children).forEach(child => {
+                        child.style.background = '#fff';
+                        child.style.border = '1px solid #d2d2d7';
+                        const statusSpan = child.querySelector('span:last-child');
+                        if (statusSpan && statusSpan.textContent === 'Previewing') {
+                            statusSpan.remove();
+                        }
+                    });
+                    
+                    item.style.background = '#e8f0fe';
+                    item.style.border = '1px solid #0071e3';
+                    const badge = document.createElement('span');
+                    badge.style.fontSize = '12px';
+                    badge.style.color = '#0071e3';
+                    badge.textContent = 'Previewing';
+                    item.appendChild(badge);
+                };
+                
+                videoList.appendChild(item);
+            });
+            
+            // Set preview source (use first video)
+            previewVideoElement.src = URL.createObjectURL(validFiles[0]);
             previewVideoElement.play().catch(e => console.log('Auto-play prevented:', e));
         }
 
@@ -774,10 +838,13 @@
         }
 
         uploadBtn.onclick = async () => {
-            if (!selectedFile) return;
+            if (selectedFiles.length === 0) return;
 
             const formData = new FormData();
-            formData.append('video', selectedFile);
+            selectedFiles.forEach(file => {
+                formData.append('video', file);
+            });
+            
             if (selectedWatermark) {
                 formData.append('watermark', selectedWatermark);
                 formData.append('watermarkOpacity', document.getElementById('watermark-opacity').value);
@@ -808,7 +875,7 @@
             formData.append('subtitleBgOpacity', String((parseInt(document.getElementById('subtitle-bg-opacity').value, 10) || 40) / 100));
 
             uploadBtn.disabled = true;
-            showStatus(`Uploading and processing (${mode} mode)... This may take a few minutes.`, 'processing');
+            showStatus(`Uploading and processing ${selectedFiles.length} videos... This may take a while.`, 'processing');
 
             try {
                 const response = await fetch(apiUrl('/api/upload'), {
@@ -822,8 +889,13 @@
                     throw new Error(data.error || 'Upload failed');
                 }
 
-                showStatus('Processing started! Waiting for result...', 'processing');
-                pollStatus(data.jobId);
+                showStatus('Upload complete! Processing videos in queue...', 'processing');
+                
+                if (data.jobIds) {
+                    pollBatchStatus(data.jobIds);
+                } else if (data.jobId) {
+                    pollBatchStatus([data.jobId]);
+                }
 
             } catch (error) {
                 showStatus(error.message, 'error');
@@ -831,30 +903,94 @@
             }
         };
 
-        async function pollStatus(jobId) {
-            const interval = setInterval(async () => {
-                try {
-                    const res = await fetch(apiUrl(`/api/status/${jobId}`));
-                    const data = await res.json();
+        async function pollBatchStatus(jobIds) {
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.innerHTML = '';
+            
+            // Create UI elements for each job
+            const jobElements = {};
+            jobIds.forEach((jobId, index) => {
+                const jobDiv = document.createElement('div');
+                jobDiv.className = 'job-item';
+                jobDiv.style.marginBottom = '15px';
+                jobDiv.style.padding = '15px';
+                jobDiv.style.background = '#f0f0f5';
+                jobDiv.style.borderRadius = '10px';
+                jobDiv.style.border = '1px solid #d2d2d7';
+                jobDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                        <span>${selectedFiles[index] ? selectedFiles[index].name : `Video ${index + 1}`}</span>
+                        <span class="job-status-text" style="color: #86868b;">Waiting...</span>
+                    </div>
+                    <div class="job-result"></div>
+                `;
+                resultsContainer.appendChild(jobDiv);
+                jobElements[jobId] = {
+                    statusText: jobDiv.querySelector('.job-status-text'),
+                    result: jobDiv.querySelector('.job-result'),
+                    container: jobDiv,
+                    isCompleted: false
+                };
+            });
 
-                    if (data.status === 'completed') {
-                        clearInterval(interval);
-                        showStatus('Done! Your video is ready.', 'success');
-                        previewVideo.src = data.url;
-                        previewVideo.style.display = 'block';
-                        uploadBtn.disabled = false;
-                    } else if (data.status === 'failed') {
-                        clearInterval(interval);
-                        showStatus(`Error: ${data.error}`, 'error');
-                        uploadBtn.disabled = false;
-                    } else {
-                        showStatus(`Processing: ${data.step || 'initializing'}...`, 'processing');
+            const checkStatus = async () => {
+                let allCompleted = true;
+                
+                for (const jobId of jobIds) {
+                    if (jobElements[jobId].isCompleted) continue;
+                    
+                    try {
+                        const res = await fetch(apiUrl(`/api/status/${jobId}`));
+                        const data = await res.json();
+                        
+                        const el = jobElements[jobId];
+                        
+                        if (data.status === 'completed') {
+                            el.statusText.textContent = '✅ Completed';
+                            el.statusText.style.color = '#155724';
+                            el.result.innerHTML = `
+                                <video controls style="width: 100%; margin-top: 10px; border-radius: 8px;">
+                                    <source src="${data.url}" type="video/mp4">
+                                </video>
+                                <a href="${data.url}" download class="download-link" style="display: block; margin-top: 10px; color: #0071e3; text-decoration: none; font-weight: 500;">Download Video</a>
+                            `;
+                            el.isCompleted = true;
+                            el.container.style.background = '#d4edda';
+                            el.container.style.borderColor = '#c3e6cb';
+                        } else if (data.status === 'failed') {
+                            el.statusText.textContent = '❌ Failed';
+                            el.statusText.style.color = '#721c24';
+                            el.result.innerHTML = `<p style="color: #721c24; margin-top: 5px;">${data.error || 'Unknown error'}</p>`;
+                            el.isCompleted = true;
+                            el.container.style.background = '#f8d7da';
+                            el.container.style.borderColor = '#f5c6cb';
+                        } else {
+                            // Processing or Queued
+                            let statusMsg = data.status;
+                            if (data.status === 'processing') {
+                                statusMsg = `Processing (${data.step || 'working'})`;
+                            }
+                            el.statusText.textContent = statusMsg;
+                            el.statusText.style.color = '#004085';
+                            el.container.style.background = '#cce5ff';
+                            el.container.style.borderColor = '#b8daff';
+                            allCompleted = false;
+                        }
+                    } catch (e) {
+                        console.error('Poll error', e);
+                        allCompleted = false;
                     }
-                } catch (e) {
-                    clearInterval(interval);
-                    showStatus('Connection lost', 'error');
                 }
-            }, 2000);
+                
+                if (!allCompleted) {
+                    setTimeout(checkStatus, 2000);
+                } else {
+                    showStatus('All videos processed!', 'success');
+                    uploadBtn.disabled = false;
+                }
+            };
+            
+            checkStatus();
         }
     </script>
 </body>

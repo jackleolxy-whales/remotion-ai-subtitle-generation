@@ -29,15 +29,33 @@ const upload = multer({ storage: storage });
 // Job store (in-memory)
 const jobs = new Map();
 
+// Job Queue
+const jobQueue = [];
+let activeJobs = 0;
+const MAX_CONCURRENT_JOBS = 1;
+
+function processQueue() {
+    if (activeJobs >= MAX_CONCURRENT_JOBS || jobQueue.length === 0) {
+        return;
+    }
+
+    const jobId = jobQueue.shift();
+    activeJobs++;
+    processJob(jobId).finally(() => {
+        activeJobs--;
+        processQueue();
+    });
+}
+
 app.post('/api/upload', upload.fields([
-    { name: 'video', maxCount: 1 },
+    { name: 'video', maxCount: 20 },
     { name: 'watermark', maxCount: 1 }
 ]), (req, res) => {
-    if (!req.files || !req.files.video) {
+    if (!req.files || !req.files.video || req.files.video.length === 0) {
         return res.status(400).json({ error: 'No video uploaded' });
     }
 
-    const videoFile = req.files.video[0];
+    const videoFiles = req.files.video;
     const watermarkFile = req.files.watermark ? req.files.watermark[0] : null;
 
     const mode = req.body.mode || 'word'; // 'word' or 'sentence'
@@ -61,41 +79,47 @@ app.post('/api/upload', upload.fields([
     const watermarkX = req.body.watermarkX ? parseInt(req.body.watermarkX) : 10;
     const watermarkY = req.body.watermarkY ? parseInt(req.body.watermarkY) : 10;
 
-    const jobId = videoFile.filename.split('.')[0];
-    const job = {
-        id: jobId,
-        status: 'queued',
-        step: 'uploaded',
-        inputPath: videoFile.path,
-        originalName: videoFile.originalname,
-        mode: mode,
-        fontSize: fontSize,
-        fontColor: fontColor,
-        highlightColor: highlightColor,
-        outlineColor: outlineColor,
-        outlineSize: outlineSize,
-        subtitleY: subtitleY,
-        originalVolume,
-        subtitleBgEnabled,
-        subtitleBgColor,
-        subtitleBgRadius,
-        subtitleBgPadX,
-        subtitleBgPadY,
-        subtitleBgOpacity,
-        watermarkPath: watermarkFile ? watermarkFile.path : null,
-        watermarkOpacity,
-        watermarkSize,
-        watermarkX,
-        watermarkY,
-        createdAt: Date.now()
-    };
+    const jobIds = [];
 
-    jobs.set(jobId, job);
+    videoFiles.forEach(videoFile => {
+        const jobId = videoFile.filename.split('.')[0];
+        const job = {
+            id: jobId,
+            status: 'queued',
+            step: 'queued',
+            inputPath: videoFile.path,
+            originalName: videoFile.originalname,
+            mode: mode,
+            fontSize: fontSize,
+            fontColor: fontColor,
+            highlightColor: highlightColor,
+            outlineColor: outlineColor,
+            outlineSize: outlineSize,
+            subtitleY: subtitleY,
+            originalVolume,
+            subtitleBgEnabled,
+            subtitleBgColor,
+            subtitleBgRadius,
+            subtitleBgPadX,
+            subtitleBgPadY,
+            subtitleBgOpacity,
+            watermarkPath: watermarkFile ? watermarkFile.path : null,
+            watermarkOpacity,
+            watermarkSize,
+            watermarkX,
+            watermarkY,
+            createdAt: Date.now()
+        };
+
+        jobs.set(jobId, job);
+        jobQueue.push(jobId);
+        jobIds.push(jobId);
+    });
     
-    // Start processing async
-    processJob(jobId);
+    // Trigger queue processing
+    processQueue();
 
-    res.json({ jobId });
+    res.json({ jobIds });
 });
 
 app.get('/api/status/:id', (req, res) => {

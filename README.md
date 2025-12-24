@@ -5,6 +5,7 @@ A powerful tool to automatically generate TikTok-style subtitled videos from you
 ## ✨ Features
 
 - **🎙️ Automatic Transcription**: Uses OpenAI's Whisper model (Medium) to accurately transcribe speech to text.
+- **📂 Batch Processing**: Upload multiple videos at once and process them sequentially with shared style settings.
 - **🎨 Dual Subtitle Modes**:
   - **Bouncing Words**: Dynamic word-by-word animation for high-energy videos.
   - **Full Sentences (Karaoke)**: Sentence-level display with precise word-level karaoke highlighting.
